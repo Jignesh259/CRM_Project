@@ -1,0 +1,51 @@
+# FastAPI Framework
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Configuration
+pydantic-settings
+python-dotenv
+
+# Authentication & Security
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+
+# Request Forms & Validation
+python-multipart
+email-validator
+
+# Password Hashing
+argon2-cffi
+
+# Redis & Background Tasks
+redis
+celery
+
+# Async Support
+aiofiles
+httpx
+
+# Email
+aiosmtplib
+jinja2
+
+# Date & Time
+python-dateutil
+
+# Logging
+loguru
+
+# Testing
+pytest
+pytest-asyncio
+
+# Development Tools
+black
+isort
+flake8
