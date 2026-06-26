@@ -1,6 +1,7 @@
 # FastAPI Framework
 fastapi
 uvicorn[standard]
+gunicorn
 
 # Database
 sqlalchemy
@@ -20,12 +21,12 @@ bcrypt
 python-multipart
 email-validator
 
-# Password Hashing
-argon2-cffi
-
 # Redis & Background Tasks
 redis
 celery
+
+# Rate Limiting
+slowapi
 
 # Async Support
 aiofiles

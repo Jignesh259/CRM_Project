@@ -78,3 +78,11 @@ staticfiles/
 # Environment files
 .env.*
 !.env.example
+
+#ini files
+*.ini
+
+/alembic/versions
+
+#markdown files
+README.md

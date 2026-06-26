@@ -1,16 +1,80 @@
-# Backend Structure
+# CRM Backend API
 
-This backend now follows a layered FastAPI structure:
+Production-grade CRM backend built with **FastAPI + PostgreSQL + Redis**.
 
-- `app/main.py`: application factory and middleware
-- `app/api/`: route registration
-- `app/api/v1/endpoints/`: versioned route handlers
-- `app/core/`: config, security, and dependency wiring
-- `app/db/`: seeded mock store for local development
-- `app/models/`: domain entities
-- `app/repositories/`: data access layer
-- `app/schemas/`: request and response models
-- `app/services/`: business logic
-- `tests/`: API smoke tests
+## Features
 
-The current persistence layer is an in-memory mock store so the project stays runnable immediately. Replacing it with SQLAlchemy later can be done mostly inside `app/db/` and `app/repositories/`.
+- ✅ **Authentication**: Register, Login, Logout
+- ✅ **JWT Tokens**: Access Token (30 min) + Refresh Token (7 days)
+- ✅ **Email OTP**: 6-digit OTP with 5-minute expiry via Redis
+- ✅ **Real-time Email**: SMTP via aiosmtplib with Jinja2 HTML templates
+- ✅ **Forgot/Reset Password**: Secure token-based password reset
+- ✅ **RBAC**: Role-Based Access Control with granular permissions
+- ✅ **PostgreSQL + SQLAlchemy + Alembic**: Full ORM with migrations
+- ✅ **Redis**: OTP storage, token blacklisting, password reset tokens
+
+## Architecture
+
+```
+app/
+├── core/           # Config, database, security, Redis, dependencies
+├── models/         # SQLAlchemy models (User, Role, Permission, etc.)
+├── schemas/        # Pydantic request/response schemas
+├── repositories/   # Data access layer
+├── services/       # Business logic (auth, JWT, email, OTP, RBAC)
+├── routers/        # API route handlers
+├── middleware/      # JWT validation, RBAC decorators
+├── utils/          # Helpers (OTP generator, password validator, etc.)
+├── templates/      # HTML email templates
+└── main.py         # FastAPI application entry point
+```
+
+## API Endpoints
+
+### Authentication
+| Method | Endpoint                    | Description                |
+|--------|-----------------------------|----------------------------|
+| POST   | `/api/auth/register`        | Register new user          |
+| POST   | `/api/auth/login`           | Login + get tokens         |
+| POST   | `/api/auth/refresh-token`   | Refresh access token       |
+| POST   | `/api/auth/logout`          | Revoke refresh token       |
+| GET    | `/api/auth/me`              | Get current user profile   |
+| POST   | `/api/auth/send-otp`        | Send OTP to email          |
+| POST   | `/api/auth/verify-otp`      | Verify email OTP           |
+| POST   | `/api/auth/forgot-password` | Request password reset     |
+| POST   | `/api/auth/reset-password`  | Reset password with token  |
+
+### Users (RBAC Protected)
+| Method | Endpoint            | Description       |
+|--------|---------------------|-------------------|
+| GET    | `/api/users`        | List all users    |
+| GET    | `/api/users/{id}`   | Get user by ID    |
+| PUT    | `/api/users/{id}`   | Update user       |
+| DELETE | `/api/users/{id}`   | Delete user       |
+
+### Roles (Admin Only)
+| Method | Endpoint             | Description        |
+|--------|----------------------|--------------------|
+| GET    | `/api/roles`         | List all roles     |
+| POST   | `/api/roles`         | Create role        |
+| POST   | `/api/roles/assign`  | Assign role        |
+| POST   | `/api/roles/remove`  | Remove role        |
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the server
+uvicorn app.main:app --reload --port 8000
+
+# Open docs
+# http://localhost:8000/docs
+```
+
+## Prerequisites
+
+- Python 3.11+
+- PostgreSQL
+- Redis

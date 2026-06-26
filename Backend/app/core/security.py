@@ -1,19 +1,28 @@
-from __future__ import annotations
+"""
+Password hashing and verification using raw bcrypt directly.
+Avoids passlib compatibility issues with modern bcrypt library versions.
+"""
 
-import hashlib
-import hmac
-import secrets
+import bcrypt
 
 
 def hash_password(password: str) -> str:
-    salt = "commsync-demo-salt"
-    return hashlib.sha256(f"{salt}:{password}".encode("utf-8")).hexdigest()
+    """Hash a plain-text password."""
+    # Ensure password fits within bcrypt limit if extremely long
+    # (though standard frontend inputs are shorter)
+    pwd_bytes = password.encode('utf-8')
+    # Generate salt and hash the password
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 
-def verify_password(password: str, password_hash: str) -> bool:
-    computed_hash = hash_password(password)
-    return hmac.compare_digest(computed_hash, password_hash)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain-text password against a hash."""
+    try:
+        pwd_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
-
-def create_demo_token(subject: str) -> str:
-    return f"{subject}.{secrets.token_hex(12)}"

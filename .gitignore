@@ -67,6 +67,7 @@ dist-ssr/
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.sql
 
 # Logs
 logs
@@ -88,3 +89,4 @@ temp/
 
 # Documentation
 Docs/
+README.md
