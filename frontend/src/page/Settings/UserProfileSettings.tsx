@@ -1,42 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { useAuth } from '../../components/AuthContext';
 import '../../style/StitchDashboard.css';
 
 export const UserProfileSettings: React.FC = () => {
+  const { user, refreshUser } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   // Profile State
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [avatar, setAvatar] = useState('');
   
-  // Password State
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
   // Feedback
   const [profileSuccess, setProfileSuccess] = useState(false);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const fetchProfileSettings = async () => {
     try {
       setLoading(true);
-      const response = await api.getSystemSettings();
-      if (response && response.success && response.data) {
-        const profile = response.data.profile || {};
-        setFullName(profile.fullName || '');
-        setEmail(profile.email || '');
-        setPhone(profile.phone || '');
-        setJobTitle(profile.jobTitle || '');
-        setAvatar(profile.avatar || '');
+      if (user) {
+        setFullName(user.full_name || '');
+        setPhone(user.phone || '');
+        setJobTitle(user.roles && user.roles.length > 0 ? user.roles[0].charAt(0).toUpperCase() + user.roles[0].slice(1) : 'Member');
+      } else {
+        const response = await api.getSystemSettings();
+        if (response && response.success && response.data) {
+          const profile = response.data.profile || {};
+          setFullName(profile.fullName || '');
+          setPhone(profile.phone || '');
+          setJobTitle(profile.jobTitle || '');
+          setAvatar(profile.avatar || '');
+        }
       }
       setError(null);
     } catch (err) {
@@ -48,17 +47,31 @@ export const UserProfileSettings: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProfileSettings();
-  }, []);
+    if (user) {
+      setFullName(user.full_name || '');
+      setPhone(user.phone || '');
+      setJobTitle(user.roles && user.roles.length > 0 ? user.roles[0].charAt(0).toUpperCase() + user.roles[0].slice(1) : 'Member');
+      setLoading(false);
+    } else {
+      fetchProfileSettings();
+    }
+  }, [user]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileSaving(true);
     setProfileSuccess(false);
     try {
+      if (user) {
+        await api.updateUser(user.id, {
+          name: fullName,
+          phone: phone
+        });
+        await refreshUser();
+      }
+
       const updatedProfile = {
         fullName,
-        email,
         phone,
         jobTitle,
         avatar
@@ -76,35 +89,6 @@ export const UserProfileSettings: React.FC = () => {
       alert('An error occurred while saving.');
     } finally {
       setProfileSaving(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      alert('All password fields are required.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      alert('New password and confirm password do not match.');
-      return;
-    }
-
-    setPasswordSaving(true);
-    setPasswordSuccess(false);
-    try {
-      // Simulation delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => setPasswordSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error changing password:', err);
-      alert('Failed to update password.');
-    } finally {
-      setPasswordSaving(false);
     }
   };
 
@@ -230,42 +214,6 @@ export const UserProfileSettings: React.FC = () => {
                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>domain</span>
                         Organization Info
                       </a>
-                      <a
-                        href="#"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          color: '#414752',
-                          textDecoration: 'none',
-                          fontSize: '14px',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f2f3fc')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>palette</span>
-                        Visual Theme
-                      </a>
-                      <a
-                        href="#"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          color: '#414752',
-                          textDecoration: 'none',
-                          fontSize: '14px',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f2f3fc')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>security</span>
-                        Security Logs
-                      </a>
                     </nav>
                   </div>
                 </div>
@@ -360,16 +308,6 @@ export const UserProfileSettings: React.FC = () => {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Email Address</label>
-                        <input
-                          type="email"
-                          className="form-input"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
                         <label className="form-label">Phone Number</label>
                         <input
                           type="text"
@@ -397,77 +335,6 @@ export const UserProfileSettings: React.FC = () => {
                             {profileSaving ? 'Saving...' : 'Save Changes'}
                           </button>
                         </div>
-                      </div>
-                    </form>
-                  </div>
-
-                  {/* Password Reset form */}
-                  <div className="glass-panel" style={{ borderRadius: '12px', padding: '24px', backgroundColor: '#ffffff' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#181c21', margin: '0 0 20px 0' }}>
-                      Change Password
-                    </h3>
-                    
-                    {passwordSuccess && (
-                      <div
-                        style={{
-                          padding: '12px',
-                          backgroundColor: '#d1fae5',
-                          color: '#065f46',
-                          borderRadius: '8px',
-                          marginBottom: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        <span className="material-symbols-outlined">check_circle</span>
-                        Password updated successfully.
-                      </div>
-                    )}
-
-                    <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div className="form-group" style={{ maxWidth: '500px' }}>
-                        <label className="form-label">Current Password</label>
-                        <input
-                          type="password"
-                          className="form-input"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="form-grid" style={{ maxWidth: '500px' }}>
-                        <div className="form-group">
-                          <label className="form-label">New Password</label>
-                          <input
-                            type="password"
-                            className="form-input"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Confirm New Password</label>
-                          <input
-                            type="password"
-                            className="form-input"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: '16px', borderTop: '1px solid #e0e2ea', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                        <button
-                          type="submit"
-                          className="btn btn-primary"
-                          disabled={passwordSaving}
-                        >
-                          {passwordSaving ? 'Updating...' : 'Update Password'}
-                        </button>
                       </div>
                     </form>
                   </div>

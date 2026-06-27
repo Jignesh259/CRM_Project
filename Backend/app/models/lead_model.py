@@ -24,8 +24,8 @@ class Lead(Base):
     # from current_user.company_id so it is never guessable or forgeable.
     company_id = Column(
         UUID(as_uuid=True),
-        nullable=True,   # nullable=True so existing rows survive migration;
-        index=True,      # set NOT NULL in the migration after backfill
+        nullable=False,
+        index=True,
     )
 
     first_name = Column(String(100), nullable=False)

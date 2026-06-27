@@ -40,35 +40,24 @@ export const OrganizationalRolesControl: React.FC = () => {
     loadRoles();
   }, []);
 
-  const handleCreateRole = (e: React.FormEvent) => {
+  const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoleName.trim() || !newRoleDescription.trim()) return;
 
     try {
-      const dataStr = localStorage.getItem('cs_roles') || '[]';
-      const list = JSON.parse(dataStr);
-      const newRole = {
-        id: `role-${Math.floor(100 + Math.random() * 900)}`,
-        name: newRoleName,
-        description: newRoleDescription,
-        usersCount: 0,
-        modules: {
-          CRM: 'None',
-          Inventory: 'None',
-          Finance: 'None',
-          Settings: 'None'
-        }
-      };
-      list.push(newRole);
-      localStorage.setItem('cs_roles', JSON.stringify(list));
-      setRoles(list);
-      
-      // Reset form
-      setNewRoleName('');
-      setNewRoleDescription('');
-      setShowCreateModal(false);
-    } catch (err) {
+      const res = await (api as any).createRole({ name: newRoleName, description: newRoleDescription });
+      if (res.success) {
+        // Reset form & reload
+        setNewRoleName('');
+        setNewRoleDescription('');
+        setShowCreateModal(false);
+        await loadRoles();
+      } else {
+        setError('Failed to create custom role.');
+      }
+    } catch (err: any) {
       console.error('Failed to create role', err);
+      setError(err.message || 'Failed to create role.');
     }
   };
 

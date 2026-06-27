@@ -8,6 +8,40 @@
     radial-gradient(circle at top right, rgba(154, 37, 174, 0.12), transparent 26%),
     linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
   color: #142033;
+
+  /* Theme customization variables */
+  --primary-color: #1976D2;
+  --primary-hover: color-mix(in srgb, var(--primary-color) 80%, black);
+  --sidebar-active-bg: color-mix(in srgb, var(--primary-color) 15%, transparent);
+  --sidebar-active-color: var(--primary-color);
+  --sidebar-active-border: var(--primary-color);
+}
+
+/* Typography Scale adjustments */
+html[data-font-size="small"] {
+  font-size: 13px;
+}
+html[data-font-size="medium"] {
+  font-size: 14px;
+}
+html[data-font-size="large"] {
+  font-size: 16px;
+}
+
+/* Density options for sidebar spacing */
+.density-compact .sidebar-nav-item {
+  padding: 5px 10px !important;
+  font-size: 13px !important;
+}
+.density-compact .sidebar-brand {
+  padding: 10px 14px !important;
+  min-height: 50px !important;
+}
+.density-compact .sidebar-user {
+  padding: 5px 10px !important;
+}
+.density-compact .sidebar-nav-group-title {
+  padding: 4px 10px 2px !important;
 }
 
 * {

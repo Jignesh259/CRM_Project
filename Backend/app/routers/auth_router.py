@@ -2,7 +2,7 @@
 Auth router — register, login, refresh, logout, OTP, password reset.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_active_user
 from app.schemas.auth_schema import RegisterRequest, LoginRequest
@@ -14,12 +14,15 @@ from app.services.otp_service import OTPService
 from app.services.password_service import PasswordService
 from app.services.email_service import email_service
 from app.services.rbac_service import RBACService
+from app.services.audit_service import AuditService
 from app.repositories.auth_repository import AuthRepository
 from app.repositories.user_repository import UserRepository
 from app.models.otp_model import OTPPurpose
 from app.utils.response_utils import success_response, error_response
 from app.utils.password_utils import validate_password_strength
+from app.core.rate_limit import limiter
 from loguru import logger
+import uuid
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -27,7 +30,8 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 # ── POST /api/auth/register ──────────────────────────────────
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)):
     """
     Register a new user.
     - Creates user in DB with is_verified=False and a unique company_id (tenant key)
@@ -43,6 +47,14 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
         phone=body.phone,
         company_name=body.company_name,
     )
+    AuditService.log(
+        db=db,
+        action="user.register",
+        user_id=uuid.UUID(result["user_id"]),
+        resource="users",
+        details={"email": body.email, "company_name": body.company_name},
+        ip_address=request.client.host if request.client else None
+    )
     return success_response(
         data=result,
         message="Registration successful. Check your email for the OTP code.",
@@ -54,10 +66,33 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
 # ── POST /api/auth/login ─────────────────────────────────────
 
 @router.post("/login")
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     auth_service = AuthService(db)
-    result = auth_service.login(email=body.email, password=body.password)
-    return success_response(data=result, message="Login successful")
+    try:
+        result = auth_service.login(email=body.email, password=body.password)
+        user_id = uuid.UUID(result["user"].get("id")) if result["user"].get("id") else None
+        AuditService.log(
+            db=db,
+            action="user.login.success",
+            user_id=user_id,
+            resource="users",
+            details={"email": body.email},
+            ip_address=request.client.host if request.client else None
+        )
+        return success_response(data=result, message="Login successful")
+    except HTTPException as e:
+        user_repo = UserRepository(db)
+        user = user_repo.get_by_email(body.email)
+        AuditService.log(
+            db=db,
+            action="user.login.failure",
+            user_id=user.id if user else None,
+            resource="users",
+            details={"email": body.email, "reason": e.detail},
+            ip_address=request.client.host if request.client else None
+        )
+        raise e
 
 
 # ── POST /api/auth/refresh-token ─────────────────────────────
@@ -72,9 +107,25 @@ def refresh_token(body: RefreshTokenRequest, db: Session = Depends(get_db)):
 # ── POST /api/auth/logout ────────────────────────────────────
 
 @router.post("/logout")
-def logout(body: RefreshTokenRequest, db: Session = Depends(get_db)):
+def logout(request: Request, body: RefreshTokenRequest, db: Session = Depends(get_db)):
     auth_service = AuthService(db)
+    user_id = None
+    try:
+        from app.services.jwt_service import verify_refresh_token
+        payload = verify_refresh_token(body.refresh_token)
+        user_id = uuid.UUID(payload.get("sub"))
+    except Exception:
+        pass
+        
     result = auth_service.logout(body.refresh_token)
+    AuditService.log(
+        db=db,
+        action="user.logout",
+        user_id=user_id,
+        resource="users",
+        details={},
+        ip_address=request.client.host if request.client else None
+    )
     return success_response(data=result, message="Logged out")
 
 
@@ -89,7 +140,8 @@ def get_me(current_user=Depends(get_current_active_user)):
 # ── POST /api/auth/send-otp ──────────────────────────────────
 
 @router.post("/send-otp")
-async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def send_otp(request: Request, body: SendOTPRequest, db: Session = Depends(get_db)):
     """Manually trigger sending an email verification OTP."""
     otp_service = OTPService(db)
     await otp_service.generate_and_send(body.email, OTPPurpose.EMAIL_VERIFICATION)
@@ -99,7 +151,8 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
 # ── POST /api/auth/resend-otp ────────────────────────────────
 
 @router.post("/resend-otp")
-async def resend_otp(body: ResendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def resend_otp(request: Request, body: ResendOTPRequest, db: Session = Depends(get_db)):
     """
     Resend OTP — invalidates the old code and generates a new one.
     Rate limited: max 3 sends per email per 10 minutes.
@@ -112,7 +165,8 @@ async def resend_otp(body: ResendOTPRequest, db: Session = Depends(get_db)):
 # ── POST /api/auth/verify-otp ────────────────────────────────
 
 @router.post("/verify-otp")
-async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def verify_otp(request: Request, body: VerifyOTPRequest, db: Session = Depends(get_db)):
     """
     Verify OTP for two purposes:
 
@@ -131,6 +185,16 @@ async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 
     is_valid = otp_service.verify(body.email, body.otp, purpose)
     if not is_valid:
+        user_repo = UserRepository(db)
+        user = user_repo.get_by_email(body.email)
+        AuditService.log(
+            db=db,
+            action="user.otp_verify.failure",
+            user_id=user.id if user else None,
+            resource="users",
+            details={"email": body.email, "purpose": purpose.value},
+            ip_address=request.client.host if request.client else None
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP. Please request a new code.",
@@ -177,6 +241,15 @@ async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 
         logger.info(f"Account activated and stored in DB for {body.email}")
 
+        AuditService.log(
+            db=db,
+            action="user.email_verified",
+            user_id=user.id,
+            resource="users",
+            details={"email": body.email},
+            ip_address=request.client.host if request.client else None
+        )
+
         return success_response(
             message="Email verified successfully! Your account is now active.",
             data={
@@ -204,6 +277,15 @@ async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 
         logger.info(f"Password reset token issued for {body.email}")
 
+        AuditService.log(
+            db=db,
+            action="user.otp_verify_password_reset.success",
+            user_id=user.id,
+            resource="users",
+            details={"email": body.email},
+            ip_address=request.client.host if request.client else None
+        )
+
         return success_response(
             message="OTP verified. You can now set a new password.",
             data={"reset_token": reset_token},
@@ -213,25 +295,59 @@ async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
 # ── POST /api/auth/forgot-password ──────────────────────────
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, body: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """
     Send a password-reset OTP to the given email.
     Always returns success to prevent user enumeration attacks.
     """
     pwd_service = PasswordService(db)
     result = await pwd_service.forgot_password(body.email)
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_email(body.email)
+    AuditService.log(
+        db=db,
+        action="user.forgot_password_request",
+        user_id=user.id if user else None,
+        resource="users",
+        details={"email": body.email},
+        ip_address=request.client.host if request.client else None
+    )
     return success_response(data=result)
 
 
 # ── POST /api/auth/reset-password ───────────────────────────
 
 @router.post("/reset-password")
-def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, body: ResetPasswordRequest, db: Session = Depends(get_db)):
     """
     Reset password using the reset_token from /verify-otp.
     Token is stored in Redis — never shared as a URL link.
     """
     validate_password_strength(body.new_password)
+    
+    from app.services.redis_service import redis_service
+    email_bytes = redis_service.get_reset_email(body.token)
+    email = None
+    if email_bytes:
+        email = email_bytes.decode() if isinstance(email_bytes, bytes) else email_bytes
+
     pwd_service = PasswordService(db)
     result = pwd_service.reset_password(body.token, body.new_password)
+    
+    user_id = None
+    if email:
+        user_repo = UserRepository(db)
+        user = user_repo.get_by_email(email)
+        user_id = user.id if user else None
+
+    AuditService.log(
+        db=db,
+        action="user.password_reset",
+        user_id=user_id,
+        resource="users",
+        details={"email": email},
+        ip_address=request.client.host if request.client else None
+    )
     return success_response(data=result)

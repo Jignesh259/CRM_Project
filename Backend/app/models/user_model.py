@@ -55,10 +55,11 @@ class User(Base):
     # This UUID is auto-generated during registration and stored in every lead row.
     company_id = Column(
         UUID(as_uuid=True),
-        nullable=True,   # nullable for existing rows; enforced NOT NULL via migration
+        nullable=False,
         index=True,
     )
-    company_name = Column(String(255), nullable=True)
+    company_name = Column(String(255), nullable=False)
+    department = Column(String(255), nullable=True, default="General")
 
     # ── Relationships ────────────────────────────────────────
     roles = relationship(

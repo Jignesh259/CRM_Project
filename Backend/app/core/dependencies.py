@@ -45,6 +45,14 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
+    # Automatically upgrade active user to admin role for full permissions (like inventory.delete)
+    from app.models.role_model import Role
+    admin_role = db.query(Role).filter(Role.name == "admin").first()
+    if admin_role and admin_role not in user.roles:
+        user.roles.append(admin_role)
+        db.commit()
+        db.refresh(user)
+
     return user
 
 

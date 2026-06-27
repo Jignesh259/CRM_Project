@@ -4,6 +4,7 @@ and attaches the user to request state.
 """
 
 from fastapi import Request, HTTPException, status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.services.jwt_service import verify_access_token
 from app.core.database import SessionLocal
@@ -39,27 +40,35 @@ class JWTMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Extract token
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing or invalid Authorization header",
-                headers={"WWW-Authenticate": "Bearer"},
+        try:
+            # Extract token
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Missing or invalid Authorization header",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            token = auth_header.split(" ", 1)[1]
+            payload = verify_access_token(token)
+            if payload is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired access token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # Attach user info to request state
+            request.state.user_id = payload.get("sub")
+            request.state.roles = payload.get("roles", [])
+
+            response = await call_next(request)
+            return response
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+                headers=exc.headers,
             )
 
-        token = auth_header.split(" ", 1)[1]
-        payload = verify_access_token(token)
-        if payload is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired access token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # Attach user info to request state
-        request.state.user_id = payload.get("sub")
-        request.state.roles = payload.get("roles", [])
-
-        response = await call_next(request)
-        return response

@@ -90,3 +90,4 @@ temp/
 # Documentation
 Docs/
 README.md
+docker-compose.yml

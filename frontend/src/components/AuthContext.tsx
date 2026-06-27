@@ -29,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchProfile = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
+      localStorage.removeItem('cs_current_user_email');
       setUser(null);
       setLoading(false);
       return;
@@ -37,15 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await api.getMe();
       if (response.success && response.data) {
+        localStorage.setItem('cs_current_user_email', response.data.email);
         setUser(response.data);
       } else {
         // Revoke token if response structure is unexpected or failed
+        localStorage.removeItem('cs_current_user_email');
         api.logout();
         setUser(null);
       }
     } catch (err) {
       console.error('Failed to verify session token:', err);
       // Clean up token if it is expired/invalid
+      localStorage.removeItem('cs_current_user_email');
       api.logout();
       setUser(null);
     } finally {
@@ -69,8 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('cs_current_user_email');
     api.logout();
     setUser(null);
+    window.location.href = '/login';
   };
 
   return (

@@ -31,12 +31,12 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: linear-gradient(135deg, var(--primary-color, #3b82f6), var(--primary-hover, #6366f1));
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color, #6366f1) 40%, transparent);
 }
 
 .sidebar-brand-icon .material-symbols-outlined {
@@ -141,15 +141,15 @@
 }
 
 .sidebar-nav-item--active {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border-left: 3px solid #6366f1;
+  background: var(--sidebar-active-bg, rgba(99, 102, 241, 0.15));
+  color: var(--sidebar-active-color, #818cf8);
+  border-left: 3px solid var(--sidebar-active-border, #6366f1);
   padding-left: 7px;
 }
 
 .sidebar-nav-item--active:hover {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
+  background: color-mix(in srgb, var(--primary-color, #3b82f6) 20%, transparent);
+  color: var(--sidebar-active-color, #a5b4fc);
 }
 
 .sidebar-nav-icon {
@@ -185,7 +185,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: linear-gradient(135deg, var(--primary-color, #3b82f6), var(--primary-hover, #6366f1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,10 +497,10 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--primary-color, #3b82f6);
   color: white;
 }
-.btn-primary:hover { background: #2563eb; }
+.btn-primary:hover { background: var(--primary-hover, #2563eb); }
 
 .btn-secondary {
   background: white;
@@ -589,8 +589,8 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #3b82f6) 12%, transparent);
 }
 
 .form-textarea {

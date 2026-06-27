@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { formatINR } from '../../utils/format';
 import '../../components/Sidebar.css';
 import '../../style/StitchDashboard.css';
 
@@ -9,12 +10,10 @@ export const InventoryStockOptimization: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadInventoryData = async () => {
       setLoading(true);
-      setError(null);
       try {
         const [prodRes, whRes] = await Promise.all([
           api.getProducts(),
@@ -29,7 +28,6 @@ export const InventoryStockOptimization: React.FC = () => {
         }
       } catch (err: any) {
         console.error(err);
-        setError(err.message || 'Failed to load inventory optimization data.');
       } finally {
         setLoading(false);
       }
@@ -122,10 +120,10 @@ export const InventoryStockOptimization: React.FC = () => {
               <div className="stat-card-header">
                 <span className="stat-card-label">Total Inventory Value</span>
                 <div className="stat-card-icon" style={{ backgroundColor: 'rgba(0, 95, 175, 0.1)' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>account_balance_wallet</span>
+                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>currency_rupee</span>
                 </div>
               </div>
-              <div className="stat-card-value">${(totalInventoryValue / 1000000).toFixed(1)}M</div>
+              <div className="stat-card-value">{formatINR(totalInventoryValue, true)}</div>
               <div className="stat-card-change up">
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span>
                 +2.4% vs last month

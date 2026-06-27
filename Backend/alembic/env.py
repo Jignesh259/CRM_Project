@@ -21,9 +21,9 @@ import app.models  # noqa: F401
 # Alembic Config object
 config = context.config
 
-# Override sqlalchemy.url from settings
+# Escape percent signs in DATABASE_URL to avoid configparser interpolation errors
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:

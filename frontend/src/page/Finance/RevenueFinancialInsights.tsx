@@ -8,10 +8,10 @@ export const RevenueFinancialInsights: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
-  // const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    // setLoading(true);
+    setLoading(true);
     try {
       const payRes = await api.getCustomerPaymentsLocal();
       setPayments(payRes.data || []);
@@ -21,7 +21,7 @@ export const RevenueFinancialInsights: React.FC = () => {
     } catch (err) {
       console.error('Failed to load financial datasets', err);
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 

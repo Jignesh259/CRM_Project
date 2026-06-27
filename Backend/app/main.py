@@ -15,8 +15,12 @@ from contextlib import asynccontextmanager
 from app.core.config import get_settings
 from app.core.database import engine, Base
 from app.core.redis_client import get_redis, close_redis
-from app.routers import auth_router, user_router, role_router, lead_router, customer_router, inventory_router
+from app.routers import auth_router, user_router, role_router, lead_router, customer_router, inventory_router, audit_router
 from app.middleware.jwt_middleware import JWTMiddleware
+from app.middleware.security_headers_middleware import SecurityHeadersMiddleware
+from app.core.rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 from loguru import logger
 import uuid
 
@@ -37,14 +41,15 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created / verified (dev mode)")
         
-        # Verify / add missing column 'temp' in development
+        # Verify / add missing column 'temp' and 'department' in development
         try:
             from sqlalchemy import text
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS temp VARCHAR(50) DEFAULT 'warm' NOT NULL"))
-            logger.info("Database schema upgrade: 'temp' column verified/added to 'leads' table")
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(255) DEFAULT 'General'"))
+            logger.info("Database schema upgrade: 'temp' and 'department' columns verified/added")
         except Exception as db_err:
-            logger.exception("Failed to check/add 'temp' column to 'leads' table: {}", db_err)
+            logger.exception("Failed to run startup database schema check/upgrade: {}", db_err)
     else:
         logger.info("Production mode — skipping create_all (use Alembic)")
 
@@ -78,6 +83,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # ── CORS (restricted in production) ──────────────────────────
 
 app.add_middleware(
@@ -88,8 +96,9 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
-# ── JWT Middleware ────────────────────────────────────────────
+# ── Security and Auth Middleware ────────────────────────────
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(JWTMiddleware)
 
 
@@ -150,6 +159,7 @@ app.include_router(role_router.router)
 app.include_router(lead_router.router)
 app.include_router(customer_router.router)
 app.include_router(inventory_router.router)
+app.include_router(audit_router.router)
 
 
 # ── Health Check ─────────────────────────────────────────────
@@ -227,6 +237,21 @@ def _seed_default_roles():
             ("user.update", "Update user profiles"),
             ("user.delete", "Delete users"),
             ("role.manage", "Manage roles and permissions"),
+            # Customers module
+            ("customer.read", "Read customer profiles"),
+            ("customer.create", "Create new customers"),
+            ("customer.update", "Update customer profiles"),
+            ("customer.delete", "Delete customers"),
+            # Leads module
+            ("lead.read", "Read lead profiles"),
+            ("lead.create", "Create new leads"),
+            ("lead.update", "Update lead profiles"),
+            ("lead.delete", "Delete leads"),
+            # Inventory module
+            ("inventory.read", "Read inventory data"),
+            ("inventory.create", "Create inventory items"),
+            ("inventory.update", "Update inventory items"),
+            ("inventory.delete", "Delete inventory items"),
         ]
         for name, desc in default_perms:
             rbac.create_permission(name, desc)
@@ -235,12 +260,18 @@ def _seed_default_roles():
         for perm_name, _ in default_perms:
             rbac.assign_permission_to_role("admin", perm_name)
 
-        # Assign read/update to manager
-        for perm_name in ["user.read", "user.create", "user.update"]:
+        # Assign read/create/update to manager
+        for perm_name in [
+            "user.read", "user.create", "user.update",
+            "customer.read", "customer.create", "customer.update",
+            "lead.read", "lead.create", "lead.update",
+            "inventory.read", "inventory.create", "inventory.update",
+        ]:
             rbac.assign_permission_to_role("manager", perm_name)
 
         # Assign read to user
-        rbac.assign_permission_to_role("user", "user.read")
+        for perm_name in ["user.read", "customer.read", "lead.read", "inventory.read"]:
+            rbac.assign_permission_to_role("user", perm_name)
 
         logger.info("Default roles and permissions seeded")
     except Exception as e:

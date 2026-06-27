@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { formatINR } from '../../utils/format';
 import '../../components/Sidebar.css';
 import '../../style/StitchDashboard.css';
 
 export const SalesPerformanceAnalytics: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  // const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSalesData = async () => {
-      // setLoading(true);
+      setLoading(true);
       setError(null);
       try {
         const [leadsRes, usersRes, invoicesRes] = await Promise.all([
@@ -25,7 +26,14 @@ export const SalesPerformanceAnalytics: React.FC = () => {
         ]);
 
         if (leadsRes.success) {
-          setLeads(leadsRes.data || []);
+          const leadsData = leadsRes.data;
+          if (leadsData && Array.isArray(leadsData.leads)) {
+            setLeads(leadsData.leads);
+          } else if (Array.isArray(leadsData)) {
+            setLeads(leadsData);
+          } else {
+            setLeads([]);
+          }
         }
         if (usersRes.success) {
           setUsers(usersRes.data || []);
@@ -37,7 +45,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
         console.error(err);
         setError(err.message || 'Error occurred while loading sales analytics.');
       } finally {
-        // setLoading(false);
+        setLoading(false);
       }
     };
     loadSalesData();
@@ -68,15 +76,16 @@ export const SalesPerformanceAnalytics: React.FC = () => {
   const allReps = [...defaultReps];
   
   agentUsers.forEach(u => {
-    if (!allReps.some(r => r.name.toLowerCase() === u.name.toLowerCase())) {
+    const uName = u.name || 'Unknown Agent';
+    if (!allReps.some(r => r.name.toLowerCase() === uName.toLowerCase())) {
       allReps.push({
-        name: u.name,
-        role: u.role,
+        name: uName,
+        role: u.role || 'Sales Agent',
         region: u.department === 'Sales' ? 'North America' : u.department || 'Other',
         deals: 5,
         winRate: '30.0%',
         revenue: 120000,
-        avatar: u.name.split(' ').map((n: string) => n[0]).join('')
+        avatar: uName.split(' ').map((n: string) => n ? n[0] : '').join('').toUpperCase() || 'SA'
       });
     }
   });
@@ -140,10 +149,10 @@ export const SalesPerformanceAnalytics: React.FC = () => {
               <div className="stat-card-header">
                 <span className="stat-card-label">Total Revenue</span>
                 <div className="stat-card-icon" style={{ backgroundColor: 'rgba(0, 95, 175, 0.1)' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>trending_up</span>
+                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>currency_rupee</span>
                 </div>
               </div>
-              <div className="stat-card-value">${(totalRevenue / 1000000).toFixed(1)}M</div>
+              <div className="stat-card-value">{formatINR(totalRevenue, true)}</div>
               <div className="stat-card-change up">
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_upward</span>
                 +12.5% vs last quarter
@@ -171,7 +180,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                   <span className="material-symbols-outlined" style={{ color: '#9a25ae', fontSize: '18px' }}>receipt_long</span>
                 </div>
               </div>
-              <div className="stat-card-value">${(avgDealSize / 1000).toFixed(0)}k</div>
+              <div className="stat-card-value">{formatINR(avgDealSize)}</div>
               <div className="stat-card-change down">
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_downward</span>
                 -1.4% vs last quarter
@@ -186,7 +195,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
               <div className="content-card-header">
                 <div>
                   <h3 className="content-card-title">Revenue Trend</h3>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Daily sales volume (USD)</p>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Daily sales volume (INR)</p>
                 </div>
               </div>
               <div style={{ padding: '24px', height: '320px', position: 'relative' }}>
@@ -198,10 +207,10 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                   <div style={{ position: 'absolute', left: 0, right: 0, top: '75%', borderTop: '1px dashed #f1f5f9' }}></div>
 
                   {/* Y Axis Labels */}
-                  <span style={{ position: 'absolute', left: '-40px', top: '0%', fontSize: '10px', color: '#94a3b8' }}>100k</span>
-                  <span style={{ position: 'absolute', left: '-40px', top: '25%', fontSize: '10px', color: '#94a3b8' }}>75k</span>
-                  <span style={{ position: 'absolute', left: '-40px', top: '50%', fontSize: '10px', color: '#94a3b8' }}>50k</span>
-                  <span style={{ position: 'absolute', left: '-40px', top: '75%', fontSize: '10px', color: '#94a3b8' }}>25k</span>
+                  <span style={{ position: 'absolute', left: '-40px', top: '0%', fontSize: '10px', color: '#94a3b8' }}>₹100k</span>
+                  <span style={{ position: 'absolute', left: '-40px', top: '25%', fontSize: '10px', color: '#94a3b8' }}>₹75k</span>
+                  <span style={{ position: 'absolute', left: '-40px', top: '50%', fontSize: '10px', color: '#94a3b8' }}>₹50k</span>
+                  <span style={{ position: 'absolute', left: '-40px', top: '75%', fontSize: '10px', color: '#94a3b8' }}>₹25k</span>
                   <span style={{ position: 'absolute', left: '-40px', bottom: '-6px', fontSize: '10px', color: '#94a3b8' }}>0</span>
 
                   {/* Line Graph SVG */}
@@ -258,7 +267,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                     <span style={{ color: '#0f172a', fontWeight: 500 }}>North America</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>$1.2M (50%)</span>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>₹1.2M (50%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{ width: '50%', height: '100%', backgroundColor: '#005dac', borderRadius: '4px' }}></div>
@@ -268,7 +277,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                     <span style={{ color: '#0f172a', fontWeight: 500 }}>EMEA</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>$850k (35%)</span>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>₹850k (35%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{ width: '35%', height: '100%', backgroundColor: '#9a25ae', borderRadius: '4px' }}></div>
@@ -278,7 +287,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                     <span style={{ color: '#0f172a', fontWeight: 500 }}>APAC</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>$350k (15%)</span>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>₹350k (15%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{ width: '15%', height: '100%', backgroundColor: '#ba5b00', borderRadius: '4px' }}></div>
@@ -365,7 +374,7 @@ export const SalesPerformanceAnalytics: React.FC = () => {
                           </span>
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
-                          ${rep.revenue.toLocaleString()}
+                          {formatINR(rep.revenue)}
                         </td>
                       </tr>
                     ))

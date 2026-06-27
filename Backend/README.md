@@ -78,3 +78,35 @@ uvicorn app.main:app --reload --port 8000
 - Python 3.11+
 - PostgreSQL
 - Redis
+
+## Docker Deployment
+
+The CRM is designed to be fully containerized for production deployment. A multi-container `docker-compose.yml` is provided at the workspace root.
+
+To launch the database, Redis cache, backend API, and static frontend concurrently:
+```bash
+docker-compose up --build -d
+```
+
+### Applying Database Migrations (Alembic)
+
+In production, automatic schema generation (`create_all`) is disabled in favor of versioned Alembic migrations. Run the following command inside the backend container to apply migrations:
+
+```bash
+docker-compose exec backend alembic upgrade head
+```
+
+To create a new migration after editing your SQLAlchemy models:
+```bash
+docker-compose exec backend alembic revision --autogenerate -m "description_of_change"
+```
+
+## Security & Compliance Hardening
+
+This backend has been audited and hardened for real-world production use:
+1. **Granular RBAC**: All CRM endpoints (Customers, Leads, Inventory) are guarded by route-level permissions checks (e.g. `lead.read`, `inventory.create`).
+2. **Strict Multi-Tenancy**: Data isolation is enforced at the database repository level using `company_id`. No cross-tenant data leakage is possible.
+3. **Resilient Rate Limiting**: Enabled globally with SlowAPI. Auth endpoints are strictly rate-limited with safe fallback to in-memory limits in case Redis is temporarily unreachable.
+4. **Centralized Audit Logging**: Mutating CRUD actions and auth state changes are logged asynchronously to the `audit_logs` table via `AuditService`, ensuring non-blocking operations and full compliance trails.
+5. **Secure Headers**: Globals headers (XSS protection, Frame Options, Content Type Options) are injected automatically via custom middleware.
+

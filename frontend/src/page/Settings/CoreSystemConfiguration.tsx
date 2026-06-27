@@ -23,7 +23,7 @@ export const CoreSystemConfiguration: React.FC = () => {
   const [autoSaveInterval, setAutoSaveInterval] = useState('Every 5 minutes');
   const [sessionDuration, setSessionDuration] = useState(60); // minutes
   const [timezone, setTimezone] = useState('PST (UTC-8)');
-  const [currency, setCurrency] = useState('USD ($)');
+  const [currency, setCurrency] = useState('INR (₹)');
   const [autoBackup, setAutoBackup] = useState(true);
 
   // Module States
@@ -325,6 +325,7 @@ export const CoreSystemConfiguration: React.FC = () => {
                             value={currency}
                             onChange={(e) => setCurrency(e.target.value)}
                           >
+                            <option>INR (₹)</option>
                             <option>USD ($)</option>
                             <option>EUR (€)</option>
                             <option>GBP (£)</option>

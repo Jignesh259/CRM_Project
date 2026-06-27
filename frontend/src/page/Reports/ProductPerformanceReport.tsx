@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { formatINR } from '../../utils/format';
 import '../../components/Sidebar.css';
 import '../../style/StitchDashboard.css';
 
@@ -8,7 +9,7 @@ export const ProductPerformanceReport: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
 
   useEffect(() => {
@@ -156,10 +157,10 @@ export const ProductPerformanceReport: React.FC = () => {
               <div className="stat-card-header">
                 <span className="stat-card-label">Total Revenue</span>
                 <div className="stat-card-icon" style={{ backgroundColor: 'rgba(0, 95, 175, 0.1)' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>attach_money</span>
+                  <span className="material-symbols-outlined" style={{ color: '#005faf', fontSize: '18px' }}>currency_rupee</span>
                 </div>
               </div>
-              <div className="stat-card-value">${(totalRevenue / 1000000).toFixed(1)}M</div>
+              <div className="stat-card-value">{formatINR(totalRevenue, true)}</div>
               <div className="stat-card-change up">
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_up</span>
                 +12.5% vs last quarter
@@ -213,7 +214,7 @@ export const ProductPerformanceReport: React.FC = () => {
             {/* Category growth */}
             <div className="content-card col-span-8">
               <div className="content-card-header">
-                <h3 className="content-card-title">Product Category Growth (Monthly Revenue - $k)</h3>
+                <h3 className="content-card-title">Product Category Growth (Monthly Revenue - ₹k)</h3>
               </div>
               <div style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginBottom: '16px' }}>
@@ -258,9 +259,9 @@ export const ProductPerformanceReport: React.FC = () => {
                   ].map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, zIndex: 1 }}>
                       <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '180px' }}>
-                        <div style={{ width: '12px', height: `${(item.data[0] / 150) * 100}%`, backgroundColor: '#005dac', borderRadius: '2px 2px 0 0' }} title={`Networking: $${item.data[0]}k`}></div>
-                        <div style={{ width: '12px', height: `${(item.data[1] / 150) * 100}%`, backgroundColor: '#9a25ae', borderRadius: '2px 2px 0 0' }} title={`Telecom: $${item.data[1]}k`}></div>
-                        <div style={{ width: '12px', height: `${(item.data[2] / 150) * 100}%`, backgroundColor: '#ba5b00', borderRadius: '2px 2px 0 0' }} title={`Electronics: $${item.data[2]}k`}></div>
+                        <div style={{ width: '12px', height: `${(item.data[0] / 150) * 100}%`, backgroundColor: '#005dac', borderRadius: '2px 2px 0 0' }} title={`Networking: ₹${item.data[0]}k`}></div>
+                        <div style={{ width: '12px', height: `${(item.data[1] / 150) * 100}%`, backgroundColor: '#9a25ae', borderRadius: '2px 2px 0 0' }} title={`Telecom: ₹${item.data[1]}k`}></div>
+                        <div style={{ width: '12px', height: `${(item.data[2] / 150) * 100}%`, backgroundColor: '#ba5b00', borderRadius: '2px 2px 0 0' }} title={`Electronics: ₹${item.data[2]}k`}></div>
                       </div>
                       <span style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>{item.month}</span>
                     </div>
@@ -294,7 +295,7 @@ export const ProductPerformanceReport: React.FC = () => {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
-                            ${prod.revenue >= 1000 ? `${(prod.revenue / 1000).toFixed(0)}k` : prod.revenue}
+                            {formatINR(prod.revenue, true)}
                           </div>
                           <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 500 }}>
                             +{15 - idx}%
@@ -369,7 +370,7 @@ export const ProductPerformanceReport: React.FC = () => {
                         <td>{prod.category}</td>
                         <td style={{ textAlign: 'right' }}>{prod.unitSales}</td>
                         <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
-                          ${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {formatINR(prod.revenue)}
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: prod.turnoverRatio > 0.5 ? '#b45309' : '#64748b' }}>

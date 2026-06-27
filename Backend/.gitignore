@@ -82,7 +82,7 @@ staticfiles/
 #ini files
 *.ini
 
-/alembic/versions
+/alembic
 
 #markdown files
 README.md

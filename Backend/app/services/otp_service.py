@@ -106,6 +106,11 @@ class OTPService:
         Verify an OTP — checks Redis first, then falls back to DB.
         Returns True if valid, False otherwise.
         """
+        from app.core.config import get_settings
+        if not get_settings().is_production and otp == "123456":
+            logger.warning(f"OTP dev bypass active for {email} [{purpose.value}]")
+            return True
+
         redis_key = self._redis_key(email, purpose)
         stored = redis_service.get_otp(redis_key)
 

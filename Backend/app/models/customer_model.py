@@ -21,7 +21,7 @@ class Customer(Base):
     # Tenant isolation key
     company_id = Column(
         UUID(as_uuid=True),
-        nullable=True,
+        nullable=False,
         index=True,
     )
 

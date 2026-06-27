@@ -104,6 +104,12 @@ class InventoryRepository:
 
     # ── Categories & Brands ───────────────────────────────────────
 
+    def get_category_by_id(self, id: str, company_id: UUID) -> Optional[ProductCategory]:
+        return self.db.query(ProductCategory).filter(
+            ProductCategory.id == id,
+            ProductCategory.company_id == company_id
+        ).first()
+
     def get_categories(self, company_id: UUID) -> List[ProductCategory]:
         return self.db.query(ProductCategory).filter(
             or_(ProductCategory.company_id == company_id, ProductCategory.company_id.is_(None))
@@ -115,6 +121,24 @@ class InventoryRepository:
         self.db.refresh(category)
         return category
 
+    def update_category(self, category: ProductCategory, updates: dict) -> ProductCategory:
+        for key, value in updates.items():
+            if value is not None:
+                setattr(category, key, value)
+        self.db.commit()
+        self.db.refresh(category)
+        return category
+
+    def delete_category(self, category: ProductCategory) -> None:
+        self.db.delete(category)
+        self.db.commit()
+
+    def get_brand_by_id(self, id: str, company_id: UUID) -> Optional[ProductBrand]:
+        return self.db.query(ProductBrand).filter(
+            ProductBrand.id == id,
+            ProductBrand.company_id == company_id
+        ).first()
+
     def get_brands(self, company_id: UUID) -> List[ProductBrand]:
         return self.db.query(ProductBrand).filter(
             or_(ProductBrand.company_id == company_id, ProductBrand.company_id.is_(None))
@@ -125,3 +149,15 @@ class InventoryRepository:
         self.db.commit()
         self.db.refresh(brand)
         return brand
+
+    def update_brand(self, brand: ProductBrand, updates: dict) -> ProductBrand:
+        for key, value in updates.items():
+            if value is not None:
+                setattr(brand, key, value)
+        self.db.commit()
+        self.db.refresh(brand)
+        return brand
+
+    def delete_brand(self, brand: ProductBrand) -> None:
+        self.db.delete(brand)
+        self.db.commit()

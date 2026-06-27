@@ -1,29 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import '../../components/Sidebar.css';
-
-const ACTIVITIES = [
-  { type: 'lead', icon: 'person_add', color: '#dbeafe', ic: '#3b82f6', user: 'Sarah Jenkins', action: 'added a new lead', subject: 'James Wilson from Acme Corp', time: '2 mins ago' },
-  { type: 'deal', icon: 'handshake', color: '#d1fae5', ic: '#10b981', user: 'Mike Torres', action: 'moved deal to', subject: 'Proposal stage — DataStream Inc.', time: '18 mins ago' },
-  { type: 'invoice', icon: 'receipt_long', color: '#ede9fe', ic: '#8b5cf6', user: 'System', action: 'Invoice #1042 sent to', subject: 'TechFlow Solutions', time: '1 hour ago' },
-  { type: 'payment', icon: 'payments', color: '#fef3c7', ic: '#f59e0b', user: 'System', action: 'Payment of $4,500 received from', subject: 'InnovateTech Ltd', time: '2 hours ago' },
-  { type: 'task', icon: 'task_alt', color: '#d1fae5', ic: '#10b981', user: 'Lisa Chen', action: 'completed task', subject: 'Follow-up call with Priya Sharma', time: '3 hours ago' },
-  { type: 'note', icon: 'edit_note', color: '#fce7f3', ic: '#ec4899', user: 'James Park', action: 'added a note to lead', subject: 'Marcus Lee — DataStream', time: '4 hours ago' },
-  { type: 'alert', icon: 'warning', color: '#fee2e2', ic: '#ef4444', user: 'System', action: 'Server load threshold exceeded —', subject: 'Review required', time: '5 hours ago' },
-  { type: 'lead', icon: 'person_add', color: '#dbeafe', ic: '#3b82f6', user: 'Sarah Jenkins', action: 'updated lead status for', subject: 'Priya Sharma to Qualified', time: '6 hours ago' },
-  { type: 'deal', icon: 'handshake', color: '#d1fae5', ic: '#10b981', user: 'Mike Torres', action: 'closed deal with', subject: 'Acme Corp — $12,000', time: '1 day ago' },
-  { type: 'invoice', icon: 'receipt_long', color: '#ede9fe', ic: '#8b5cf6', user: 'System', action: 'Invoice #1038 overdue —', subject: 'Reminder sent to GlobalTech', time: '1 day ago' },
-];
+import { api } from '../../api/api';
 
 const FILTER_TYPES = ['All', 'Leads', 'Deals', 'Invoices', 'Payments', 'Tasks'];
 
 export const ActivityFeed: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const res = await api.getSecurityLogs();
+        if (res.success && res.data) {
+          const mapped = res.data.map((log: any) => {
+            let type = 'system';
+            let icon = 'info';
+            let color = '#dbeafe';
+            let ic = '#3b82f6';
+            
+            const actionLower = log.action.toLowerCase();
+            if (actionLower.includes('lead')) {
+              type = 'leads';
+              icon = 'person_add';
+              color = '#dbeafe';
+              ic = '#3b82f6';
+            } else if (actionLower.includes('deal') || actionLower.includes('quote')) {
+              type = 'deals';
+              icon = 'handshake';
+              color = '#d1fae5';
+              ic = '#10b981';
+            } else if (actionLower.includes('invoice')) {
+              type = 'invoices';
+              icon = 'receipt_long';
+              color = '#ede9fe';
+              ic = '#8b5cf6';
+            } else if (actionLower.includes('payment') || actionLower.includes('expense')) {
+              type = 'payments';
+              icon = 'payments';
+              color = '#fef3c7';
+              ic = '#f59e0b';
+            } else if (actionLower.includes('task')) {
+              type = 'tasks';
+              icon = 'task_alt';
+              color = '#d1fae5';
+              ic = '#10b981';
+            } else if (actionLower.includes('user') || actionLower.includes('role')) {
+              type = 'admin';
+              icon = 'shield_person';
+              color = '#fce7f3';
+              ic = '#ec4899';
+            }
+
+            let subject = '';
+            try {
+              if (log.details) {
+                const parsed = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                subject = parsed.name || parsed.subject || parsed.email || parsed.product_id || parsed.category_id || JSON.stringify(parsed);
+              }
+            } catch (e) {
+              subject = String(log.details || '');
+            }
+
+            // Humanize action label
+            const displayAction = log.action
+              .replace('inventory.product.', '')
+              .replace('inventory.category.', '')
+              .replace('inventory.brand.', '')
+              .replace('customer.', '')
+              .replace('lead.', '')
+              .replace('user.', '')
+              .replace('role.', '')
+              .replace('auth.', '')
+              .replace('.', ' ');
+
+            const date = new Date(log.timestamp);
+            const timeStr = date.toLocaleString();
+
+            return {
+              type,
+              icon,
+              color,
+              ic,
+              user: log.userName || 'System',
+              action: displayAction,
+              subject: subject || '',
+              time: timeStr
+            };
+          });
+          setActivities(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to load activities', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadActivities();
+  }, []);
 
   const filtered = filter === 'All'
-    ? ACTIVITIES
-    : ACTIVITIES.filter((a) => a.type === filter.toLowerCase().slice(0, -1));
+    ? activities
+    : activities.filter((a) => a.type.toLowerCase() === filter.toLowerCase());
 
   return (
     <div className="dashboard-layout">
@@ -66,21 +147,29 @@ export const ActivityFeed: React.FC = () => {
               <span style={{ fontSize: '13px', color: '#94a3b8' }}>{filtered.length} events</span>
             </div>
             <div style={{ padding: '0 20px' }}>
-              {filtered.map((a, i) => (
-                <div className="activity-item" key={i}>
-                  <div className="activity-icon" style={{ background: a.color }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: a.ic }}>{a.icon}</span>
-                  </div>
-                  <div className="activity-content">
-                    <div className="activity-text">
-                      <strong style={{ color: '#0f172a' }}>{a.user}</strong>{' '}
-                      {a.action}{' '}
-                      <span style={{ color: '#3b82f6', fontWeight: 500 }}>{a.subject}</span>
+              {loading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading activities...</div>
+              ) : filtered.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No activities logged yet.</div>
+              ) : (
+                filtered.map((a, i) => (
+                  <div className="activity-item" key={i}>
+                    <div className="activity-icon" style={{ background: a.color }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: a.ic }}>{a.icon}</span>
                     </div>
-                    <div className="activity-time">{a.time}</div>
+                    <div className="activity-content">
+                      <div className="activity-text">
+                        <strong style={{ color: '#0f172a' }}>{a.user}</strong>{' '}
+                        {a.action}{' '}
+                        {a.subject && (
+                          <span style={{ color: '#3b82f6', fontWeight: 500 }}>{a.subject}</span>
+                        )}
+                      </div>
+                      <div className="activity-time">{a.time}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -2,12 +2,14 @@
 Customer router — Customer CRUD endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
 import time
 from app.core.dependencies import get_db, get_current_active_user
+from app.middleware.role_middleware import require_permission
+from app.services.audit_service import AuditService
 from app.repositories.customer_repository import CustomerRepository
 from app.models.customer_model import Customer
 from app.schemas.customer_schema import CustomerCreate, CustomerUpdate
@@ -44,7 +46,7 @@ def serialize_customer(customer: Customer) -> dict:
 
 # ── GET /api/customers ───────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("customer.read"))])
 def list_customers(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=1000),
@@ -83,8 +85,9 @@ def list_customers(
 
 # ── POST /api/customers ──────────────────────────────────────────
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("customer.create"))])
 def create_customer(
+    request: Request,
     body: CustomerCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
@@ -109,6 +112,15 @@ def create_customer(
     )
     created = repo.create(customer)
 
+    AuditService.log(
+        db=db,
+        action="customer.create",
+        user_id=current_user.id,
+        resource="customers",
+        details={"customer_id": created.id, "email": created.email, "company": created.company},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(
         data=serialize_customer(created),
         message="Customer created successfully",
@@ -118,7 +130,7 @@ def create_customer(
 
 # ── GET /api/customers/{customer_id} ─────────────────────────────────
 
-@router.get("/{customer_id}")
+@router.get("/{customer_id}", dependencies=[Depends(require_permission("customer.read"))])
 def get_customer(
     customer_id: str,
     db: Session = Depends(get_db),
@@ -135,8 +147,9 @@ def get_customer(
 
 # ── PUT /api/customers/{customer_id} ─────────────────────────────────
 
-@router.put("/{customer_id}")
+@router.put("/{customer_id}", dependencies=[Depends(require_permission("customer.update"))])
 def update_customer(
+    request: Request,
     customer_id: str,
     body: CustomerUpdate,
     db: Session = Depends(get_db),
@@ -151,6 +164,15 @@ def update_customer(
     updates = body.model_dump(exclude_unset=True)
     updated = repo.update(customer, updates)
 
+    AuditService.log(
+        db=db,
+        action="customer.update",
+        user_id=current_user.id,
+        resource="customers",
+        details={"customer_id": customer_id, "updates": list(updates.keys())},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(
         data=serialize_customer(updated),
         message="Customer updated successfully",
@@ -159,8 +181,9 @@ def update_customer(
 
 # ── DELETE /api/customers/{customer_id} ──────────────────────────────
 
-@router.delete("/{customer_id}")
+@router.delete("/{customer_id}", dependencies=[Depends(require_permission("customer.delete"))])
 def delete_customer(
+    request: Request,
     customer_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
@@ -172,12 +195,22 @@ def delete_customer(
         raise HTTPException(status_code=404, detail="Customer not found")
 
     repo.delete(customer)
+
+    AuditService.log(
+        db=db,
+        action="customer.delete",
+        user_id=current_user.id,
+        resource="customers",
+        details={"customer_id": customer_id, "email": customer.email},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(message="Customer deleted successfully")
 
 
 # ── Mocked Details Endpoints (Orders, Invoices, Payments) ────────────
 
-@router.get("/{customer_id}/orders")
+@router.get("/{customer_id}/orders", dependencies=[Depends(require_permission("customer.read"))])
 def get_customer_orders(
     customer_id: str,
     db: Session = Depends(get_db),
@@ -197,7 +230,7 @@ def get_customer_orders(
     ]
     return success_response(data=orders)
 
-@router.get("/{customer_id}/invoices")
+@router.get("/{customer_id}/invoices", dependencies=[Depends(require_permission("customer.read"))])
 def get_customer_invoices(
     customer_id: str,
     db: Session = Depends(get_db),
@@ -217,7 +250,7 @@ def get_customer_invoices(
     ]
     return success_response(data=invoices)
 
-@router.get("/{customer_id}/payments")
+@router.get("/{customer_id}/payments", dependencies=[Depends(require_permission("customer.read"))])
 def get_customer_payments(
     customer_id: str,
     db: Session = Depends(get_db),

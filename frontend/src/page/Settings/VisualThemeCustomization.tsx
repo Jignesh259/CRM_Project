@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { applyUserTheme } from '../../utils/theme';
 import '../../style/StitchDashboard.css';
 
 export const VisualThemeCustomization: React.FC = () => {
@@ -68,22 +69,8 @@ export const VisualThemeCustomization: React.FC = () => {
       const response = await api.updateSystemSettings('theme', themeData);
       if (response && response.success) {
         setSuccess(true);
-        // Visual toggle on HTML element for live demo
-        if (mode === 'dark') {
-          document.documentElement.classList.add('dark');
-          document.documentElement.classList.remove('light');
-        } else if (mode === 'light') {
-          document.documentElement.classList.add('light');
-          document.documentElement.classList.remove('dark');
-        } else {
-          // System preference
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (prefersDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-        }
+        const currentEmail = localStorage.getItem('cs_current_user_email') || 'default';
+        applyUserTheme(currentEmail);
         setTimeout(() => setSuccess(false), 3000);
       } else {
         alert('Failed to update visual settings.');

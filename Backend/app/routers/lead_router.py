@@ -8,11 +8,13 @@ MULTI-TENANCY ENFORCEMENT:
   another company's leads, even with a valid JWT.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
 from app.core.dependencies import get_db, get_current_active_user
+from app.middleware.role_middleware import require_permission
+from app.services.audit_service import AuditService
 from app.repositories.lead_repository import LeadRepository
 from app.models.lead_model import Lead, LeadActivity
 from app.schemas.lead_schema import LeadCreate, LeadUpdate, LeadActivityCreate
@@ -60,7 +62,7 @@ def serialize_lead(lead: Lead) -> dict:
 
 # ── GET /api/leads ───────────────────────────────────────────
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_permission("lead.read"))])
 def list_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=1000),
@@ -102,8 +104,9 @@ def list_leads(
 
 # ── POST /api/leads ──────────────────────────────────────────
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("lead.create"))])
 def create_lead(
+    request: Request,
     body: LeadCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
@@ -130,6 +133,15 @@ def create_lead(
     )
     created = repo.create(lead)
 
+    AuditService.log(
+        db=db,
+        action="lead.create",
+        user_id=current_user.id,
+        resource="leads",
+        details={"lead_id": str(created.id), "email": created.email, "company": created.company},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(
         data=serialize_lead(created),
         message="Lead created successfully",
@@ -139,7 +151,7 @@ def create_lead(
 
 # ── GET /api/leads/{lead_id} ─────────────────────────────────
 
-@router.get("/{lead_id}")
+@router.get("/{lead_id}", dependencies=[Depends(require_permission("lead.read"))])
 def get_lead(
     lead_id: UUID,
     db: Session = Depends(get_db),
@@ -157,8 +169,9 @@ def get_lead(
 
 # ── PUT /api/leads/{lead_id} ─────────────────────────────────
 
-@router.put("/{lead_id}")
+@router.put("/{lead_id}", dependencies=[Depends(require_permission("lead.update"))])
 def update_lead(
+    request: Request,
     lead_id: UUID,
     body: LeadUpdate,
     db: Session = Depends(get_db),
@@ -173,6 +186,15 @@ def update_lead(
     updates = body.model_dump(exclude_unset=True)
     updated = repo.update(lead, updates)
 
+    AuditService.log(
+        db=db,
+        action="lead.update",
+        user_id=current_user.id,
+        resource="leads",
+        details={"lead_id": str(lead_id), "updates": list(updates.keys())},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(
         data=serialize_lead(updated),
         message="Lead updated successfully",
@@ -181,8 +203,9 @@ def update_lead(
 
 # ── DELETE /api/leads/{lead_id} ──────────────────────────────
 
-@router.delete("/{lead_id}")
+@router.delete("/{lead_id}", dependencies=[Depends(require_permission("lead.delete"))])
 def delete_lead(
+    request: Request,
     lead_id: UUID,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_active_user),
@@ -196,13 +219,24 @@ def delete_lead(
         raise HTTPException(status_code=404, detail="Lead not found")
 
     repo.delete(lead)
+
+    AuditService.log(
+        db=db,
+        action="lead.delete",
+        user_id=current_user.id,
+        resource="leads",
+        details={"lead_id": str(lead_id), "email": lead.email},
+        ip_address=request.client.host if request.client else None
+    )
+
     return success_response(message="Lead deleted successfully")
 
 
 # ── POST /api/leads/{lead_id}/activities ─────────────────────
 
-@router.post("/{lead_id}/activities", status_code=status.HTTP_201_CREATED)
+@router.post("/{lead_id}/activities", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("lead.update"))])
 def create_lead_activity(
+    request: Request,
     lead_id: UUID,
     body: LeadActivityCreate,
     db: Session = Depends(get_db),
@@ -226,6 +260,15 @@ def create_lead_activity(
         **activity_data,
     )
     created = repo.create_activity(activity)
+
+    AuditService.log(
+        db=db,
+        action="lead.activity.create",
+        user_id=current_user.id,
+        resource="leads",
+        details={"lead_id": str(lead_id), "activity_id": str(created.id), "activity_type": created.activity_type},
+        ip_address=request.client.host if request.client else None
+    )
 
     act_resp = {
         "id": str(created.id),

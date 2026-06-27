@@ -38,8 +38,8 @@ const getAvatarColor = (id: string) => {
 };
 
 const formatValue = (val: number | null) => {
-  if (val === null || val === undefined) return '$0';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+  if (val === null || val === undefined) return '₹0';
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
 };
 
 export const LeadProfile: React.FC = () => {

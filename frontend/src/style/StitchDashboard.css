@@ -76,7 +76,7 @@
 
 .bar {
   width: 32px;
-  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  background: linear-gradient(to top, var(--primary-color, #3b82f6), var(--primary-hover, #60a5fa));
   border-radius: 4px 4px 0 0;
   position: relative;
   transition: height 0.8s ease-out;
@@ -84,7 +84,7 @@
 }
 
 .bar:hover {
-  background: linear-gradient(to top, #2563eb, #3b82f6);
+  background: linear-gradient(to top, var(--primary-hover, #2563eb), var(--primary-color, #3b82f6));
 }
 
 .bar::after {
@@ -151,9 +151,9 @@
 }
 
 .step-item.active .step-node {
-  background: #dbeafe;
-  border-color: #3b82f6;
-  color: #1d4ed8;
+  background: color-mix(in srgb, var(--primary-color, #3b82f6) 12%, transparent);
+  border-color: var(--primary-color, #3b82f6);
+  color: var(--primary-hover, #1d4ed8);
 }
 
 .step-item.completed .step-node {
@@ -221,8 +221,8 @@
 }
 
 .timeline-event.active .timeline-marker {
-  border-color: #3b82f6;
-  background: #3b82f6;
+  border-color: var(--primary-color, #3b82f6);
+  background: var(--primary-color, #3b82f6);
 }
 
 .timeline-event-content {

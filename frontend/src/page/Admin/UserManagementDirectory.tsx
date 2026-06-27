@@ -39,17 +39,15 @@ export const UserManagementDirectory: React.FC = () => {
   const handleToggleStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
     try {
-      // Find user and update in local storage for demonstration
-      const dataStr = localStorage.getItem('cs_users') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((u: any) => u.id === userId);
-      if (idx !== -1) {
-        list[idx].status = newStatus;
-        localStorage.setItem('cs_users', JSON.stringify(list));
+      const res = await api.updateUser(userId, { status: newStatus });
+      if (res.success) {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+      } else {
+        setError('Failed to update user status.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update status', err);
+      setError(err.message || 'Failed to update user status.');
     }
   };
 

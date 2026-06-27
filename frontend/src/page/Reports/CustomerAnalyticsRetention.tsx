@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { api } from '../../api/api';
+import { formatINR } from '../../utils/format';
 import '../../components/Sidebar.css';
 import '../../style/StitchDashboard.css';
 
@@ -9,12 +10,10 @@ export const CustomerAnalyticsRetention: React.FC = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  // const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCustomers = async () => {
       setLoading(true);
-      setError(null);
       try {
         const response = await api.getCustomers();
         // Since getCustomers might return { success: true, data: [...] } or direct list
@@ -153,10 +152,10 @@ export const CustomerAnalyticsRetention: React.FC = () => {
               <div className="stat-card-header">
                 <span className="stat-card-label">Avg LTV</span>
                 <div className="stat-card-icon" style={{ backgroundColor: 'rgba(154, 37, 174, 0.1)' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#9a25ae', fontSize: '18px' }}>monetization_on</span>
+                  <span className="material-symbols-outlined" style={{ color: '#9a25ae', fontSize: '18px' }}>currency_rupee</span>
                 </div>
               </div>
-              <div className="stat-card-value">$4,250</div>
+              <div className="stat-card-value">{formatINR(4250)}</div>
               <div className="stat-card-change down">
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>trending_down</span>
                 -1.4% vs last quarter
@@ -330,7 +329,7 @@ export const CustomerAnalyticsRetention: React.FC = () => {
                           </span>
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                          ${cust.ltv.toLocaleString()}
+                          {formatINR(cust.ltv)}
                         </td>
                       </tr>
                     ))

@@ -98,7 +98,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { icon: 'person', label: 'Profile Settings', path: '/settings/profile' },
       { icon: 'domain', label: 'Org Branding', path: '/settings/organization' },
-      { icon: 'palette', label: 'Visual Theme', path: '/settings/theme' },
       { icon: 'mail', label: 'Email & Comm', path: '/settings/email' },
       { icon: 'tune', label: 'Core Config', path: '/settings/system' },
     ],
