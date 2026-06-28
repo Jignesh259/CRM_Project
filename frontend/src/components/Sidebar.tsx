@@ -140,26 +140,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle })
 
       {/* ── Nav groups ── */}
       <nav className="sidebar-nav">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.title} className="sidebar-nav-group">
-            {!collapsed && group.title && (
-              <p className="sidebar-nav-group-title">{group.title}</p>
-            )}
-            {group.items.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `sidebar-nav-item ${isActive ? 'sidebar-nav-item--active' : ''}`
-                }
-                title={collapsed ? item.label : undefined}
-              >
-                <span className="material-symbols-outlined sidebar-nav-icon">{item.icon}</span>
-                {!collapsed && <span className="sidebar-nav-label">{item.label}</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        {(() => {
+          const roles = user?.roles ? user.roles.map(r => r.toLowerCase()) : [];
+          const isAdmin = roles.includes('admin');
+          const isManager = roles.includes('manager');
+
+          return NAV_GROUPS.map((group) => {
+            if (group.title === 'Administration') {
+              if (!isAdmin) return null;
+            }
+            if (group.title === 'Finance & Accounts' || group.title === 'Reports & Analytics') {
+              if (!isAdmin && !isManager) return null;
+            }
+            if (group.title === 'Settings') {
+              const allowedItems = group.items.filter(item => {
+                if (item.path === '/settings/profile') return true;
+                return isAdmin;
+              });
+              if (allowedItems.length === 0) return null;
+              return { ...group, items: allowedItems };
+            }
+            return group;
+          })
+          .filter((group): group is NavGroup => group !== null)
+          .map((group) => (
+            <div key={group.title} className="sidebar-nav-group">
+              {!collapsed && group.title && (
+                <p className="sidebar-nav-group-title">{group.title}</p>
+              )}
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `sidebar-nav-item ${isActive ? 'sidebar-nav-item--active' : ''}`
+                  }
+                  title={collapsed ? item.label : undefined}
+                >
+                  <span className="material-symbols-outlined sidebar-nav-icon">{item.icon}</span>
+                  {!collapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          ));
+        })()}
       </nav>
 
       {/* ── Bottom: user profile ── */}

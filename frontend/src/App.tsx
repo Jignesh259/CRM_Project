@@ -173,25 +173,25 @@ function App() {
             <Route path="/invoices/:id/preview" element={<ProtectedRoute><InvoicePreview /></ProtectedRoute>} />
 
             {/* ── Phase 2 Financial & Account Routes ── */}
-            <Route path="/finance/payments" element={<ProtectedRoute><CustomerPaymentLedger /></ProtectedRoute>} />
-            <Route path="/finance/settlements" element={<ProtectedRoute><PendingPaymentSettlements /></ProtectedRoute>} />
-            <Route path="/finance/transactions/:id" element={<ProtectedRoute><PaymentTransactionDetails /></ProtectedRoute>} />
-            <Route path="/finance/analytics" element={<ProtectedRoute><PaymentHistoryAnalytics /></ProtectedRoute>} />
-            <Route path="/finance/revenue" element={<ProtectedRoute><RevenueFinancialInsights /></ProtectedRoute>} />
-            <Route path="/finance/expenses" element={<ProtectedRoute><ExpenseCostManagement /></ProtectedRoute>} />
+            <Route path="/finance/payments" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><CustomerPaymentLedger /></ProtectedRoute>} />
+            <Route path="/finance/settlements" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><PendingPaymentSettlements /></ProtectedRoute>} />
+            <Route path="/finance/transactions/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><PaymentTransactionDetails /></ProtectedRoute>} />
+            <Route path="/finance/analytics" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><PaymentHistoryAnalytics /></ProtectedRoute>} />
+            <Route path="/finance/revenue" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RevenueFinancialInsights /></ProtectedRoute>} />
+            <Route path="/finance/expenses" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><ExpenseCostManagement /></ProtectedRoute>} />
 
             {/* ── Phase 2 Reports & Analytics Routes ── */}
-            <Route path="/reports/products" element={<ProtectedRoute><ProductPerformanceReport /></ProtectedRoute>} />
-            <Route path="/reports/sales" element={<ProtectedRoute><SalesPerformanceAnalytics /></ProtectedRoute>} />
-            <Route path="/reports/customers" element={<ProtectedRoute><CustomerAnalyticsRetention /></ProtectedRoute>} />
-            <Route path="/reports/inventory" element={<ProtectedRoute><InventoryStockOptimization /></ProtectedRoute>} />
+            <Route path="/reports/products" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><ProductPerformanceReport /></ProtectedRoute>} />
+            <Route path="/reports/sales" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><SalesPerformanceAnalytics /></ProtectedRoute>} />
+            <Route path="/reports/customers" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><CustomerAnalyticsRetention /></ProtectedRoute>} />
+            <Route path="/reports/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><InventoryStockOptimization /></ProtectedRoute>} />
 
             {/* ── Phase 2 Administration & Security Routes ── */}
-            <Route path="/admin/users" element={<ProtectedRoute><UserManagementDirectory /></ProtectedRoute>} />
-            <Route path="/admin/users/new" element={<ProtectedRoute><OnboardNewUser /></ProtectedRoute>} />
-            <Route path="/admin/roles" element={<ProtectedRoute><OrganizationalRolesControl /></ProtectedRoute>} />
-            <Route path="/admin/security" element={<ProtectedRoute><SecurityAuditActivityLogs /></ProtectedRoute>} />
-            <Route path="/admin/permissions" element={<ProtectedRoute><GranularAccessPermissions /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagementDirectory /></ProtectedRoute>} />
+            <Route path="/admin/users/new" element={<ProtectedRoute allowedRoles={['admin']}><OnboardNewUser /></ProtectedRoute>} />
+            <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><OrganizationalRolesControl /></ProtectedRoute>} />
+            <Route path="/admin/security" element={<ProtectedRoute allowedRoles={['admin']}><SecurityAuditActivityLogs /></ProtectedRoute>} />
+            <Route path="/admin/permissions" element={<ProtectedRoute allowedRoles={['admin']}><GranularAccessPermissions /></ProtectedRoute>} />
 
             {/* ── Phase 2 Communication Routes ── */}
             <Route path="/notifications" element={<ProtectedRoute><NotificationCenter /></ProtectedRoute>} />
@@ -200,9 +200,9 @@ function App() {
             {/* ── Phase 2 Settings Routes ── */}
             <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
             <Route path="/settings/profile" element={<ProtectedRoute><UserProfileSettings /></ProtectedRoute>} />
-            <Route path="/settings/organization" element={<ProtectedRoute><OrganizationBrandingSettings /></ProtectedRoute>} />
-            <Route path="/settings/email" element={<ProtectedRoute><EmailCommunicationSettings /></ProtectedRoute>} />
-            <Route path="/settings/system" element={<ProtectedRoute><CoreSystemConfiguration /></ProtectedRoute>} />
+            <Route path="/settings/organization" element={<ProtectedRoute allowedRoles={['admin']}><OrganizationBrandingSettings /></ProtectedRoute>} />
+            <Route path="/settings/email" element={<ProtectedRoute allowedRoles={['admin']}><EmailCommunicationSettings /></ProtectedRoute>} />
+            <Route path="/settings/system" element={<ProtectedRoute allowedRoles={['admin']}><CoreSystemConfiguration /></ProtectedRoute>} />
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/login" replace />} />

@@ -213,11 +213,17 @@ async def verify_otp(request: Request, body: VerifyOTPRequest, db: Session = Dep
                 detail="User not found",
             )
 
-        # ── Assign default 'user' role (if not already assigned) ─
+        # ── Assign default 'admin' role if first user of the company, else 'user' ─
         try:
             rbac = RBACService(db)
-            rbac.assign_role(user.id, "user")
-            logger.info(f"Default 'user' role assigned to {body.email}")
+            user_repo = UserRepository(db)
+            user_count = user_repo.count_tenant(user.company_id)
+            if user_count <= 1:
+                rbac.assign_role(user.id, "admin")
+                logger.info(f"Admin role assigned to first tenant user: {body.email}")
+            else:
+                rbac.assign_role(user.id, "user")
+                logger.info(f"Default 'user' role assigned to {body.email}")
         except Exception as e:
             logger.warning(f"Could not assign default role to {body.email}: {e}")
 
@@ -236,6 +242,9 @@ async def verify_otp(request: Request, body: VerifyOTPRequest, db: Session = Dep
             "is_active": user.is_active,
             "is_verified": user.is_verified,
             "roles": [r.name for r in user.roles],
+            "company_id": str(user.company_id) if user.company_id else None,
+            "company_name": user.company_name,
+            "department": user.department,
             "created_at": user.created_at.isoformat(),
         }
 

@@ -31,6 +31,7 @@ class UserCreate(BaseModel):
     role: str
     department: str
     permissions: Optional[dict] = None
+    password: Optional[str] = None
 
 
 class UserUpdate(BaseModel):

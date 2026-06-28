@@ -38,7 +38,7 @@ def _console_fallback(to: str, subject: str, otp: str | None = None) -> None:
     print(f"  To      : {to}", file=sys.stderr)
     print(f"  Subject : {subject}", file=sys.stderr)
     if otp:
-        print(f"  OTP     : ➜  {otp}  ◀  USE THIS CODE", file=sys.stderr)
+        print(f"  Code/Pass: ➜  {otp}  ◀", file=sys.stderr)
     print(f"{border}\n", file=sys.stderr)
 
 
@@ -126,6 +126,25 @@ class EmailService:
         template = _jinja_env.get_template("welcome_template.html")
         html = template.render(full_name=full_name, email=email)
         return await self._send(email, "Welcome to CRM! 🎉", html)
+
+    async def send_invite_email(
+        self,
+        email: str,
+        company_name: str,
+        role: str,
+        department: str,
+        temp_password: str,
+    ) -> bool:
+        """Send an invitation email to an onboarded user."""
+        template = _jinja_env.get_template("invite_template.html")
+        html = template.render(
+            email=email,
+            company_name=company_name,
+            role=role.capitalize(),
+            department=department,
+            temp_password=temp_password,
+        )
+        return await self._send(email, "Invitation to join CommSync CRM", html, otp=temp_password)
 
 
 email_service = EmailService()

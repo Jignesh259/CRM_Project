@@ -58,12 +58,15 @@ def list_users(
 # ── POST /api/users (Onboard User) ───────────────────────────
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def onboard_user(
+async def onboard_user(
     request: Request,
     body: UserCreate,
     db: Session = Depends(get_db),
     current_user=Depends(require_role("admin")),
 ):
+    from loguru import logger
+    from app.services.email_service import email_service
+
     company_id = current_user.company_id
     company_name = current_user.company_name
     if not company_id:
@@ -75,8 +78,10 @@ def onboard_user(
         raise HTTPException(status_code=400, detail="User with this email already exists.")
 
     from app.models.user_model import User
-    # Default initial password is set to 'Password123!'
-    hashed_pwd = PasswordService.hash_password("Password123!")
+    from app.core.security import hash_password
+    # Default initial password is set to request body password or 'Password123!'
+    temp_pass = body.password if body.password else "Password123!"
+    hashed_pwd = hash_password(temp_pass)
 
     new_user = User(
         email=body.email,
@@ -95,6 +100,18 @@ def onboard_user(
     # Assign requested role
     rbac = RBACService(db)
     rbac.assign_role(created_user.id, body.role)
+
+    # Send invitation email (non-blocking)
+    try:
+        await email_service.send_invite_email(
+            email=created_user.email,
+            company_name=company_name,
+            role=body.role,
+            department=created_user.department or "General",
+            temp_password=temp_pass,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send invite email to {created_user.email}: {e}")
 
     # Log audit event
     AuditService.log(
@@ -239,8 +256,6 @@ def delete_user(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    repo.delete(user)
-
     # Log audit event
     AuditService.log(
         db=db,
@@ -250,5 +265,7 @@ def delete_user(
         details={"deleted_user_id": str(user_id), "email": user.email},
         ip_address=request.client.host if request.client else None
     )
+
+    repo.delete(user)
 
     return success_response(message="User deleted")

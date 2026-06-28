@@ -9,6 +9,9 @@ export interface UserProfile {
   is_active: boolean;
   is_verified: boolean;
   roles: string[];
+  company_id?: string;
+  company_name?: string;
+  department?: string;
   created_at: string;
 }
 

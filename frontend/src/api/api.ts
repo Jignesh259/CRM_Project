@@ -1385,6 +1385,14 @@ export const api = {
   },
 
   createUser: async (userData: any) => {
+    const roleMap: Record<string, string> = {
+      'Administrator': 'admin',
+      'Manager': 'manager',
+      'Editor': 'user',
+      'Viewer': 'user',
+    };
+    const backendRole = roleMap[userData.role] || userData.role.toLowerCase();
+
     const response = await apiRequest(`${API_BASE_URL}/users`, {
       method: 'POST',
       headers: {
@@ -1393,10 +1401,11 @@ export const api = {
       },
       body: JSON.stringify({
         email: userData.email,
-        full_name: userData.name,
-        role: userData.role,
+        name: userData.name,
+        role: backendRole,
         department: userData.department,
-        phone: userData.phone || null
+        phone: userData.phone || null,
+        password: userData.password || null
       }),
     });
     if (!response.ok) {
@@ -1434,7 +1443,13 @@ export const api = {
       payload.department = updates.department;
     }
     if (updates.role !== undefined) {
-      payload.role = updates.role;
+      const roleMap: Record<string, string> = {
+        'Administrator': 'admin',
+        'Manager': 'manager',
+        'Editor': 'user',
+        'Viewer': 'user',
+      };
+      payload.role = roleMap[updates.role] || updates.role.toLowerCase();
     }
 
     const response = await apiRequest(`${API_BASE_URL}/users/${id}`, {
@@ -1462,6 +1477,21 @@ export const api = {
         status: updated.is_active ? 'Active' : 'Suspended'
       }
     };
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await apiRequest(`${API_BASE_URL}/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...api.getAuthHeaders(),
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to delete user'));
+    }
+    return { success: true };
   },
 
   getRoles: async () => {

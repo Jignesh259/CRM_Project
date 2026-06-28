@@ -35,7 +35,7 @@ export const LoadingScreen: React.FC = () => {
   );
 };
 
-export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -46,6 +46,13 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   if (!user) {
     // Redirect to login but save the current location they were trying to access
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (allowedRoles && user.roles) {
+    const hasRole = user.roles.some(r => allowedRoles.includes(r.toLowerCase()));
+    if (!hasRole) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -12,6 +12,7 @@ export const OnboardNewUser: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('');
   const [department, setDepartment] = useState('');
+  const [password, setPassword] = useState('');
   
   // Permissions states
   const [crmAccess, setCrmAccess] = useState(true);
@@ -38,6 +39,7 @@ export const OnboardNewUser: React.FC = () => {
         phone,
         role,
         department,
+        password: password || undefined,
         permissions: {
           crm: crmAccess,
           inventory: inventoryAccess,
@@ -168,6 +170,20 @@ export const OnboardNewUser: React.FC = () => {
                       <option value="Manager">Manager</option>
                       <option value="Administrator">Administrator</option>
                     </select>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
+                      Password <span style={{ color: '#64748b', fontWeight: 400 }}>(Optional - defaults to Password123!)</span>
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter initial temporary password or leave blank"
+                      className="form-control"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ width: '100%', height: '40px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+                    />
                   </div>
                 </div>
 

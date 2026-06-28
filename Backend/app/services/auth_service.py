@@ -185,6 +185,9 @@ class AuthService:
             "is_active": user.is_active,
             "is_verified": user.is_verified,
             "roles": [r.name for r in user.roles],
+            "company_id": str(user.company_id) if user.company_id else None,
+            "company_name": user.company_name,
+            "department": user.department,
             "created_at": user.created_at.isoformat(),
             "updated_at": user.updated_at.isoformat() if user.updated_at else None,
         }

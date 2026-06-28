@@ -51,6 +51,23 @@ export const UserManagementDirectory: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (!window.confirm(`Are you sure you want to delete member ${userEmail}? This will permanently delete their account and all associated details. They will no longer be able to log in.`)) {
+      return;
+    }
+    try {
+      const res = await api.deleteUser(userId);
+      if (res.success) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+      } else {
+        setError('Failed to delete user.');
+      }
+    } catch (err: any) {
+      console.error('Failed to delete user', err);
+      setError(err.message || 'Failed to delete user.');
+    }
+  };
+
   // Filter users based on query
   const filteredUsers = users.filter(u => {
     const q = searchQuery.toLowerCase();
@@ -255,6 +272,20 @@ export const UserManagementDirectory: React.FC = () => {
                                 }}
                               >
                                 {user.status === 'Active' ? 'Suspend' : 'Activate'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                className="btn btn-sm btn-secondary"
+                                style={{
+                                  fontSize: '12px',
+                                  padding: '4px 10px',
+                                  height: 'auto',
+                                  borderColor: '#dc2626',
+                                  color: '#dc2626',
+                                  backgroundColor: 'transparent'
+                                }}
+                              >
+                                Delete
                               </button>
                             </div>
                           </td>

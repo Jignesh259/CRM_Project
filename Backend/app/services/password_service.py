@@ -2,7 +2,7 @@
 Password service — forgot password (OTP-based) and reset password flows.
 
 Flow:
-  1. User submits email → generate OTP → store in Redis (15 min) → send email
+  1. User submits email → generate OTP → store in Redis (5 min) → send email
   2. User verifies OTP via /verify-otp (purpose=password_reset)
   3. /verify-otp returns a short-lived reset_token
   4. User submits new password with reset_token → password updated
