@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from app.core.config import get_settings
 from app.core.database import engine, Base
 from app.core.redis_client import get_redis, close_redis
-from app.routers import auth_router, user_router, role_router, lead_router, customer_router, inventory_router, audit_router
+from app.routers import auth_router, user_router, role_router, lead_router, customer_router, inventory_router, audit_router, vendor_router, sales_router, finance_router
 from app.middleware.jwt_middleware import JWTMiddleware
 from app.middleware.security_headers_middleware import SecurityHeadersMiddleware
 from app.core.rate_limit import limiter
@@ -159,6 +159,9 @@ app.include_router(role_router.router)
 app.include_router(lead_router.router)
 app.include_router(customer_router.router)
 app.include_router(inventory_router.router)
+app.include_router(vendor_router.router)
+app.include_router(sales_router.router)
+app.include_router(finance_router.router)
 app.include_router(audit_router.router)
 
 
@@ -252,6 +255,16 @@ def _seed_default_roles():
             ("inventory.create", "Create inventory items"),
             ("inventory.update", "Update inventory items"),
             ("inventory.delete", "Delete inventory items"),
+            # Vendor module
+            ("vendor.read", "Read vendor profiles"),
+            ("vendor.create", "Create new vendors"),
+            ("vendor.update", "Update vendor profiles"),
+            ("vendor.delete", "Delete vendors"),
+            # Finance module
+            ("finance.read", "Read finance data (invoices, payments, expenses)"),
+            ("finance.create", "Create finance records"),
+            ("finance.update", "Update finance records"),
+            ("finance.delete", "Delete finance records"),
         ]
         for name, desc in default_perms:
             rbac.create_permission(name, desc)
@@ -266,11 +279,12 @@ def _seed_default_roles():
             "customer.read", "customer.create", "customer.update",
             "lead.read", "lead.create", "lead.update",
             "inventory.read", "inventory.create", "inventory.update",
+            "finance.read", "finance.create", "finance.update",
         ]:
             rbac.assign_permission_to_role("manager", perm_name)
 
         # Assign read to user
-        for perm_name in ["user.read", "customer.read", "lead.read", "inventory.read"]:
+        for perm_name in ["user.read", "customer.read", "lead.read", "inventory.read", "finance.read"]:
             rbac.assign_permission_to_role("user", perm_name)
 
         logger.info("Default roles and permissions seeded")

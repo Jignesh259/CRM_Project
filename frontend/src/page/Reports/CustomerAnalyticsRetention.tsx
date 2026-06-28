@@ -35,17 +35,8 @@ export const CustomerAnalyticsRetention: React.FC = () => {
     loadCustomers();
   }, []);
 
-  // Baseline mock records if database is empty or to enrich data
-  const fallbackCustomers = [
-    { id: 'CUST-001', name: 'Acme Corp', industry: 'Technology', joinDate: 'Jan 12, 2021', status: 'Active', plan: 'Enterprise Plan', ltv: 124500, logoText: 'AC' },
-    { id: 'CUST-002', name: 'Global Industries', industry: 'Manufacturing', joinDate: 'Mar 05, 2022', status: 'Active', plan: 'Pro Plan', ltv: 89200, logoText: 'GI' },
-    { id: 'CUST-003', name: 'Starkware', industry: 'Finance', joinDate: 'Nov 28, 2021', status: 'At Risk', plan: 'Enterprise Plan', ltv: 76450, logoText: 'S' },
-    { id: 'CUST-004', name: 'Nexus Dynamics', industry: 'Healthcare', joinDate: 'Aug 14, 2023', status: 'Active', plan: 'Basic Plan', ltv: 42100, logoText: 'N' }
-  ];
-
-  // Map API customers to enrich the table
-  const mappedApiCustomers = customers.map((c: any, index) => {
-    // Generate some mock stats for API customers so they display nicely in report
+  // Only show real API customers — no hardcoded demo data
+  const allCustomers = customers.map((c: any, index) => {
     const industries = ['Technology', 'Manufacturing', 'Finance', 'Healthcare', 'Retail', 'Education'];
     const statuses = ['Active', 'Active', 'Active', 'At Risk', 'Inactive'];
     const plans = ['Enterprise Plan', 'Pro Plan', 'Basic Plan'];
@@ -53,18 +44,13 @@ export const CustomerAnalyticsRetention: React.FC = () => {
       id: c.id || `CUST-API-${index}`,
       name: c.name || c.company_name || 'Customer Name',
       industry: c.industry || industries[index % industries.length],
-      joinDate: c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Jun 15, 2023',
+      joinDate: c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—',
       status: c.status || statuses[index % statuses.length],
       plan: c.plan || plans[index % plans.length],
-      ltv: c.ltv || (Math.floor(Math.random() * 30000) + 15000),
+      ltv: c.ltv || 0,
       logoText: (c.name || c.company_name || 'C').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
     };
   });
-
-  // Combine both fallback and API customers for robust dashboard reporting
-  const allCustomers = mappedApiCustomers.length > 0 
-    ? [...mappedApiCustomers, ...fallbackCustomers]
-    : fallbackCustomers;
 
   // Filter customers by search query
   const filteredCustomers = allCustomers.filter(c =>

@@ -51,14 +51,10 @@ export const PendingPaymentSettlements: React.FC = () => {
   // Settle Payment handler (Approve)
   const handleSettle = async (id: string) => {
     try {
-      const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((p: any) => p.id === id);
-      if (idx !== -1) {
-        list[idx].status = 'Completed';
-        list[idx].settlementDate = new Date().toISOString();
-        localStorage.setItem('cs_customer_payments', JSON.stringify(list));
-      }
+      await api.updatePayment(id, {
+        status: 'Completed',
+        settlementDate: new Date().toISOString()
+      });
       await loadData();
     } catch (err) {
       console.error('Failed to settle payment', err);
@@ -68,14 +64,9 @@ export const PendingPaymentSettlements: React.FC = () => {
   // Fail Payment handler (Reject)
   const handleFail = async (id: string) => {
     try {
-      const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((p: any) => p.id === id);
-      if (idx !== -1) {
-        list[idx].status = 'Failed';
-        list[idx].failureReason = 'Settlement manually declined by admin';
-        localStorage.setItem('cs_customer_payments', JSON.stringify(list));
-      }
+      await api.updatePayment(id, {
+        status: 'Failed'
+      });
       await loadData();
     } catch (err) {
       console.error('Failed to reject payment', err);

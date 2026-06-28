@@ -8,3 +8,6 @@ from app.models.audit_log_model import AuditLog  # noqa: F401
 from app.models.lead_model import Lead, LeadActivity  # noqa: F401
 from app.models.customer_model import Customer  # noqa: F401
 from app.models.inventory_model import Product, ProductCategory, ProductBrand  # noqa: F401
+from app.models.vendor_model import Vendor  # noqa: F401
+from app.models.sales_model import Quotation, SalesOrder, Shipment, PurchaseOrder  # noqa: F401
+from app.models.finance_model import Invoice, CustomerPayment, Expense  # noqa: F401

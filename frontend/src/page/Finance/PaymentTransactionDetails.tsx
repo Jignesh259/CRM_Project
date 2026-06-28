@@ -47,14 +47,10 @@ export const PaymentTransactionDetails: React.FC = () => {
   const handleSettle = async () => {
     if (!payment) return;
     try {
-      const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((p: any) => p.id === payment.id);
-      if (idx !== -1) {
-        list[idx].status = 'Completed';
-        list[idx].settlementDate = new Date().toISOString();
-        localStorage.setItem('cs_customer_payments', JSON.stringify(list));
-      }
+      await api.updatePayment(payment.id, {
+        status: 'Completed',
+        settlementDate: new Date().toISOString()
+      });
       await loadDetails();
     } catch (err) {
       console.error(err);
@@ -64,14 +60,9 @@ export const PaymentTransactionDetails: React.FC = () => {
   const handleFail = async () => {
     if (!payment) return;
     try {
-      const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((p: any) => p.id === payment.id);
-      if (idx !== -1) {
-        list[idx].status = 'Failed';
-        list[idx].failureReason = 'Payment rejected during processing';
-        localStorage.setItem('cs_customer_payments', JSON.stringify(list));
-      }
+      await api.updatePayment(payment.id, {
+        status: 'Failed'
+      });
       await loadDetails();
     } catch (err) {
       console.error(err);

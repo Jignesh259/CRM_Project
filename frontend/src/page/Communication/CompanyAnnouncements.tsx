@@ -55,9 +55,9 @@ export const CompanyAnnouncements: React.FC = () => {
         setIsAdmin(role === 'Administrator' || role === 'Manager');
       }
     } catch (err) {
-      console.log('Failed to fetch user profile, defaulting admin capability to true for simulation');
-      // For local development, allow administration
-      setIsAdmin(true);
+      console.error('Failed to fetch user profile:', err);
+      // Default to no admin rights on error — never grant elevated access on failure
+      setIsAdmin(false);
     }
   };
 

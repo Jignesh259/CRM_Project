@@ -99,14 +99,8 @@ export const CustomerQuotations: React.FC = () => {
 
       const res = await api.createInvoice(payload);
       if (res.success) {
-        // Update quote status in local storage
-        const storedQuotesStr = localStorage.getItem('cs_quotations') || '[]';
-        const storedQuotes = JSON.parse(storedQuotesStr);
-        const qIdx = storedQuotes.findIndex((q: any) => q.id === quote.id);
-        if (qIdx !== -1) {
-          storedQuotes[qIdx].status = 'Invoiced';
-          localStorage.setItem('cs_quotations', JSON.stringify(storedQuotes));
-        }
+        // Mark the quote as Invoiced via the backend
+        await api.updateQuote(quote.id, { status: 'Invoiced' });
         alert('Quote successfully converted to Customer Invoice: ' + res.data.id);
         loadQuotesData();
       }

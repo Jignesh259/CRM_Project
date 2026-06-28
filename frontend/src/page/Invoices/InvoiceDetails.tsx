@@ -38,40 +38,20 @@ export const InvoiceDetails: React.FC = () => {
     if (!window.confirm('Mark this invoice as Paid? This will record the payment in the ledger.')) return;
     setUpdating(true);
     try {
-      const storedInvsStr = localStorage.getItem('cs_invoices') || '[]';
-      const storedInvs = JSON.parse(storedInvsStr);
-      const invIdx = storedInvs.findIndex((i: any) => i.id === invoice.id);
-      if (invIdx !== -1) {
-        storedInvs[invIdx].status = 'Paid';
-        storedInvs[invIdx].history.push({
-          date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          action: 'Payment received & marked as Paid',
-          user: 'Sarah Jenkins',
-        });
-        localStorage.setItem('cs_invoices', JSON.stringify(storedInvs));
-        setInvoice(storedInvs[invIdx]);
-
-        // Add to customer payments
-        // Verify customer exists to log payment
-        const custRes = await api.getCustomers();
-        const customers = custRes.data?.customers || [];
-        const customerObj = customers.find((c: any) => String(c.id) === String(invoice.customerId));
-        if (customerObj) {
-          // Add to cs_payments or customer billing logs
-          // We can push to payment logs
-          const payRes = await api.getCustomerPayments(invoice.customerId);
-          const payments = payRes.data || [];
-          payments.unshift({
-            id: `PAY-${Math.floor(1000 + Math.random() * 9000)}`,
-            amount: invoice.total,
-            method: 'Stripe',
-            status: 'Completed',
-            date: new Date().toISOString().split('T')[0],
-          });
-        }
-      }
-    } catch (err) {
+      const payload = {
+        invoiceId: invoice.id,
+        customerId: invoice.customerId,
+        customerName: invoice.customerName,
+        amount: invoice.total,
+        method: 'Stripe',
+        status: 'Completed',
+        date: new Date().toISOString(),
+      };
+      await api.createCustomerPaymentLocal(payload);
+      await loadInvoiceDetails();
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || 'Failed to update payment');
     } finally {
       setUpdating(false);
     }

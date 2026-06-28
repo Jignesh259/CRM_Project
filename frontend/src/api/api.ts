@@ -798,59 +798,107 @@ export const api = {
 
   // ── Vendors Mock Endpoints ──
   getVendors: async (params?: { search?: string; category?: string; status?: string }) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_vendors') || '[]';
-    let list = JSON.parse(dataStr);
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      list = list.filter((v: any) => v.name.toLowerCase().includes(q) || v.contactPerson.toLowerCase().includes(q));
+    const url = new URL(`${API_BASE_URL}/vendors`);
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '' && val !== 'All') {
+          url.searchParams.append(key, String(val));
+        }
+      });
     }
-    if (params?.category && params.category !== 'All') {
-      list = list.filter((v: any) => v.category === params.category);
+    const response = await apiRequest(url.toString(), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch vendors'));
     }
-    if (params?.status && params.status !== 'All') {
-      list = list.filter((v: any) => v.status === params.status);
+    const res = await response.json();
+    return { success: true, data: res.data?.vendors || [] };
+  },
+
+  getVendorCategories: async (): Promise<{ success: boolean; data: string[] }> => {
+    const response = await apiRequest(`${API_BASE_URL}/vendors/categories`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      return { success: true, data: [] };
     }
-    return { success: true, data: list };
+    const res = await response.json();
+    return { success: true, data: res.data || [] };
   },
 
   getVendor: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_vendors') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((v: any) => v.id === id);
-    if (!item) throw new Error('Vendor not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/vendors/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Vendor not found'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   createVendor: async (vendorData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_vendors') || '[]';
-    const list = JSON.parse(dataStr);
-    const newVendor = {
-      ...vendorData,
-      id: `VEND-${Math.floor(100 + Math.random() * 900)}`,
-      rating: 5.0,
-      performanceScore: 100,
-      ytdSpend: 0,
-      activePOs: 0,
-      pendingDeliveries: 0,
-      status: 'Active'
+    const payload = {
+      name: vendorData.name,
+      category: vendorData.category,
+      contact_person: vendorData.contactPerson,
+      email: vendorData.email,
+      phone: vendorData.phone,
+      address: vendorData.address,
+      description: vendorData.description,
+      payment_terms: vendorData.paymentTerms,
+      min_order_qty: vendorData.minOrderQty,
+      lead_time: vendorData.leadTime,
+      status: vendorData.status || 'Active',
     };
-    list.unshift(newVendor);
-    localStorage.setItem('cs_vendors', JSON.stringify(list));
-    return { success: true, data: newVendor };
+    const response = await apiRequest(`${API_BASE_URL}/vendors`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create vendor'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   updateVendor: async (id: string, vendorData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_vendors') || '[]';
-    const list = JSON.parse(dataStr);
-    const idx = list.findIndex((v: any) => v.id === id);
-    if (idx === -1) throw new Error('Vendor not found');
-    list[idx] = { ...list[idx], ...vendorData };
-    localStorage.setItem('cs_vendors', JSON.stringify(list));
-    return { success: true, data: list[idx] };
+    const payload: any = {};
+    if (vendorData.name !== undefined) payload.name = vendorData.name;
+    if (vendorData.category !== undefined) payload.category = vendorData.category;
+    if (vendorData.contactPerson !== undefined) payload.contact_person = vendorData.contactPerson;
+    if (vendorData.email !== undefined) payload.email = vendorData.email;
+    if (vendorData.phone !== undefined) payload.phone = vendorData.phone;
+    if (vendorData.address !== undefined) payload.address = vendorData.address;
+    if (vendorData.description !== undefined) payload.description = vendorData.description;
+    if (vendorData.paymentTerms !== undefined) payload.payment_terms = vendorData.paymentTerms;
+    if (vendorData.minOrderQty !== undefined) payload.min_order_qty = vendorData.minOrderQty;
+    if (vendorData.leadTime !== undefined) payload.lead_time = vendorData.leadTime;
+    if (vendorData.status !== undefined) payload.status = vendorData.status;
+    if (vendorData.performanceScore !== undefined) payload.performance_score = vendorData.performanceScore;
+    if (vendorData.ytdSpend !== undefined) payload.ytd_spend = vendorData.ytdSpend;
+    if (vendorData.activePOs !== undefined) payload.active_pos = vendorData.activePOs;
+    if (vendorData.pendingDeliveries !== undefined) payload.pending_deliveries = vendorData.pendingDeliveries;
+
+    const response = await apiRequest(`${API_BASE_URL}/vendors/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update vendor'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   getVendorPayments: async () => {
@@ -884,225 +932,430 @@ export const api = {
     return { success: true, data: newPayment };
   },
 
-  // ── Purchase Orders Mock Endpoints ──
-  getPurchaseOrders: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_purchase_orders') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+  // ── Purchase Orders Endpoints ──
+  getPurchaseOrders: async (params?: { search?: string; status?: string }) => {
+    const url = new URL(`${API_BASE_URL}/purchase-orders`);
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          url.searchParams.append(key, String(val));
+        }
+      });
+    }
+    const response = await apiRequest(url.toString(), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch purchase orders'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data || [] };
   },
 
   getPurchaseOrder: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_purchase_orders') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((po: any) => po.id === id);
-    if (!item) throw new Error('Purchase Order not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/purchase-orders/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Purchase order not found'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   createPurchaseOrder: async (poData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_purchase_orders') || '[]';
-    const list = JSON.parse(dataStr);
-    const newPO = {
-      ...poData,
-      id: `PO-2026-${Math.floor(100 + Math.random() * 900)}`,
-      date: new Date().toISOString(),
-      status: 'Sent',
-      comments: [
-        { id: '1', author: 'System', text: 'Purchase Order generated and sent.', timestamp: 'Just now' }
-      ]
+    const payload = {
+      vendor_id: poData.vendorId,
+      vendor_name: poData.vendorName,
+      total: poData.total,
+      expected_delivery: poData.expectedDelivery,
+      items: poData.items,
+      notes: poData.notes,
+      status: poData.status || 'Sent',
     };
-    list.unshift(newPO);
-    localStorage.setItem('cs_purchase_orders', JSON.stringify(list));
-
-    // Increment active POs on Vendor
-    const vendorStr = localStorage.getItem('cs_vendors') || '[]';
-    const vendors = JSON.parse(vendorStr);
-    const vIdx = vendors.findIndex((v: any) => v.id === poData.vendorId);
-    if (vIdx !== -1) {
-      vendors[vIdx].activePOs += 1;
-      vendors[vIdx].pendingDeliveries += 1;
-      localStorage.setItem('cs_vendors', JSON.stringify(vendors));
+    const response = await apiRequest(`${API_BASE_URL}/purchase-orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create purchase order'));
     }
-
-    return { success: true, data: newPO };
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
-  // ── Sales Orders & Shipments Mock Endpoints ──
+  updatePurchaseOrder: async (id: string, updates: { status?: string; comments?: any[]; notes?: string }) => {
+    const response = await apiRequest(`${API_BASE_URL}/purchase-orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update purchase order'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
+  },
   getSalesOrder: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_sales_orders') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((so: any) => so.id === id);
-    if (!item) throw new Error('Sales Order not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/sales-orders/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Sales order not found'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
-  getShipments: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_shipments') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+  getSalesOrders: async (params?: { search?: string; status?: string }) => {
+    const url = new URL(`${API_BASE_URL}/sales-orders`);
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          url.searchParams.append(key, String(val));
+        }
+      });
+    }
+    const response = await apiRequest(url.toString(), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch sales orders'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data || [] };
+  },
+
+  // ── Shipments Endpoints ──
+  getShipments: async (params?: { status?: string }) => {
+    const url = new URL(`${API_BASE_URL}/shipments`);
+    if (params?.status) url.searchParams.append('status', params.status);
+    const response = await apiRequest(url.toString(), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch shipments'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data || [] };
   },
 
   getShipment: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_shipments') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((s: any) => s.id === id);
-    if (!item) throw new Error('Shipment not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/shipments/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Shipment not found'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   updateShipmentStatus: async (id: string, update: { status: string; activity: string }) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_shipments') || '[]';
-    const list = JSON.parse(dataStr);
-    const idx = list.findIndex((s: any) => s.id === id);
-    if (idx === -1) throw new Error('Shipment not found');
-
-    list[idx].status = update.status;
-    list[idx].history.push({
-      timestamp: new Date().toISOString(),
-      activity: update.activity
+    const response = await apiRequest(`${API_BASE_URL}/shipments/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(update),
     });
-    localStorage.setItem('cs_shipments', JSON.stringify(list));
-    return { success: true, data: list[idx] };
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update shipment status'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
-  // ── Quotations Mock Endpoints ──
-  getQuotes: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_quotations') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+  // ── Quotations Endpoints ──
+  getQuotes: async (params?: { search?: string; status?: string }) => {
+    const url = new URL(`${API_BASE_URL}/quotations`);
+    if (params) {
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '' && val !== 'All') {
+          url.searchParams.append(key, String(val));
+        }
+      });
+    }
+    const response = await apiRequest(url.toString(), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch quotations'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data || [] };
   },
 
   getQuote: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_quotations') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((q: any) => q.id === id);
-    if (!item) throw new Error('Quote not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/quotations/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Quotation not found'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   createQuote: async (quoteData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_quotations') || '[]';
-    const list = JSON.parse(dataStr);
-    const newQuote = {
-      ...quoteData,
-      id: `QT-${Math.floor(4000 + Math.random() * 6000)}`,
-      date: new Date().toISOString(),
-      status: 'Sent'
+    const payload = {
+      customer_id: quoteData.customerId,
+      customer_name: quoteData.customerName,
+      total: quoteData.total,
+      valid_until: quoteData.validUntil,
+      items: quoteData.items,
+      notes: quoteData.notes,
+      status: quoteData.status || 'Sent',
     };
-    list.unshift(newQuote);
-    localStorage.setItem('cs_quotations', JSON.stringify(list));
-    return { success: true, data: newQuote };
+    const response = await apiRequest(`${API_BASE_URL}/quotations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create quotation'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
-  // ── Customer Invoices Mock Endpoints ──
+  updateQuote: async (id: string, updates: { status?: string; notes?: string }) => {
+    const response = await apiRequest(`${API_BASE_URL}/quotations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update quotation'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
+  },
+
+  // ── Customer Invoices Endpoints ──
   getInvoices: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_invoices') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+    const response = await apiRequest(`${API_BASE_URL}/invoices`, {
+      method: 'GET',
+      headers: { ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch invoices'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   getInvoice: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_invoices') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((inv: any) => inv.id === id);
-    if (!item) throw new Error('Invoice not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/invoices/${id}`, {
+      method: 'GET',
+      headers: { ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch invoice'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   createInvoice: async (invoiceData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_invoices') || '[]';
-    const list = JSON.parse(dataStr);
-    const newInvoice = {
-      ...invoiceData,
-      id: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
-      date: new Date().toISOString(),
-      history: [
-        { date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(), action: 'Invoice Created', user: 'System' }
-      ]
+    const payload = {
+      id: invoiceData.id,
+      customerId: invoiceData.customerId,
+      customerName: invoiceData.customerName,
+      date: invoiceData.date,
+      dueDate: invoiceData.dueDate,
+      items: invoiceData.items,
+      subtotal: invoiceData.subtotal,
+      tax: invoiceData.tax,
+      total: invoiceData.total,
+      status: invoiceData.status || 'Unpaid',
+      history: invoiceData.history,
     };
-    list.unshift(newInvoice);
-    localStorage.setItem('cs_invoices', JSON.stringify(list));
-    return { success: true, data: newInvoice };
+    const response = await apiRequest(`${API_BASE_URL}/invoices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create invoice'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   updateInvoice: async (id: string, invoiceData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_invoices') || '[]';
-    const list = JSON.parse(dataStr);
-    const idx = list.findIndex((inv: any) => inv.id === id);
-    if (idx === -1) throw new Error('Invoice not found');
-
-    list[idx] = { ...list[idx], ...invoiceData };
-    list[idx].history.push({
-      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-      action: 'Invoice Updated / Status changed to ' + invoiceData.status,
-      user: 'System'
+    const payload = {
+      status: invoiceData.status,
+      dueDate: invoiceData.dueDate,
+      history: invoiceData.history,
+    };
+    const response = await apiRequest(`${API_BASE_URL}/invoices/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
     });
-    localStorage.setItem('cs_invoices', JSON.stringify(list));
-    return { success: true, data: list[idx] };
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update invoice'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
-  // ── Phase 2 Financial & Account Mock Endpoints ──
+  // ── Financial & Account Endpoints ──
   getCustomerPaymentsLocal: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+    const response = await apiRequest(`${API_BASE_URL}/payments`, {
+      method: 'GET',
+      headers: { ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch payments'));
+    }
+    const res = await response.json();
+    const mapped = (res.data || []).map((p: any) => ({
+      ...p,
+      paymentMethod: p.method || p.paymentMethod
+    }));
+    return { success: true, data: mapped };
   },
 
   createCustomerPaymentLocal: async (paymentData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-    const list = JSON.parse(dataStr);
-    const newPayment = {
-      ...paymentData,
-      id: `PAY-${Math.floor(9000 + Math.random() * 1000)}`,
-      date: new Date().toISOString(),
-      transactionFee: Number((Number(paymentData.amount) * 0.015 + 0.30).toFixed(2)),
-      settlementDate: paymentData.status === 'Completed' ? new Date().toISOString() : null
+    const payload = {
+      id: paymentData.id,
+      invoiceId: paymentData.invoiceId,
+      customerId: paymentData.customerId,
+      customerName: paymentData.customerName,
+      amount: paymentData.amount,
+      method: paymentData.paymentMethod || paymentData.method,
+      status: paymentData.status || 'Pending',
+      date: paymentData.date,
+      transactionFee: paymentData.transactionFee || 0.0,
+      settlementDate: paymentData.settlementDate,
     };
-    list.unshift(newPayment);
-    localStorage.setItem('cs_customer_payments', JSON.stringify(list));
-    return { success: true, data: newPayment };
+    const response = await apiRequest(`${API_BASE_URL}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create payment'));
+    }
+    const res = await response.json();
+    const mapped = res.data ? { ...res.data, paymentMethod: res.data.method } : null;
+    return { success: true, data: mapped };
   },
 
   getPaymentDetails: async (id: string) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_customer_payments') || '[]';
-    const list = JSON.parse(dataStr);
-    const item = list.find((p: any) => p.id === id);
-    if (!item) throw new Error('Payment transaction not found');
-    return { success: true, data: item };
+    const response = await apiRequest(`${API_BASE_URL}/payments/${id}`, {
+      method: 'GET',
+      headers: { ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch payment details'));
+    }
+    const res = await response.json();
+    const mapped = res.data ? { ...res.data, paymentMethod: res.data.method } : null;
+    return { success: true, data: mapped };
+  },
+
+  updatePayment: async (id: string, paymentData: any) => {
+    const payload = {
+      status: paymentData.status,
+      settlement_date: paymentData.settlementDate,
+    };
+    const response = await apiRequest(`${API_BASE_URL}/payments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update payment'));
+    }
+    const res = await response.json();
+    const mapped = res.data ? { ...res.data, paymentMethod: res.data.method } : null;
+    return { success: true, data: mapped };
   },
 
   getExpenses: async () => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_expenses') || '[]';
-    return { success: true, data: JSON.parse(dataStr) };
+    const response = await apiRequest(`${API_BASE_URL}/expenses`, {
+      method: 'GET',
+      headers: { ...api.getAuthHeaders() },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to fetch expenses'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   createExpense: async (expenseData: any) => {
-    initInventoryData();
-    const dataStr = localStorage.getItem('cs_expenses') || '[]';
-    const list = JSON.parse(dataStr);
-    const newExpense = {
-      ...expenseData,
-      id: `EXP-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: expenseData.date || new Date().toISOString(),
+    const payload = {
+      id: expenseData.id,
+      amount: expenseData.amount,
+      category: expenseData.category,
+      merchant: expenseData.merchant,
+      date: expenseData.date,
       status: expenseData.status || 'Pending',
-      approvedBy: expenseData.status === 'Approved' ? 'John Doe' : null
+      description: expenseData.description,
+      approvedBy: expenseData.approvedBy,
     };
-    list.unshift(newExpense);
-    localStorage.setItem('cs_expenses', JSON.stringify(list));
-    return { success: true, data: newExpense };
+    const response = await apiRequest(`${API_BASE_URL}/expenses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to create expense'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
+  },
+
+  updateExpense: async (id: string, expenseData: any) => {
+    const payload = {
+      status: expenseData.status,
+      approved_by: expenseData.approvedBy,
+    };
+    const response = await apiRequest(`${API_BASE_URL}/expenses/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...api.getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(extractError(error, 'Failed to update expense'));
+    }
+    const res = await response.json();
+    return { success: true, data: res.data };
   },
 
   // ── Phase 2 User & Admin Mock Endpoints ──

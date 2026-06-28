@@ -11,10 +11,11 @@ export const InventoryOverviewDashboard: React.FC = () => {
     totalValue: 0,
     lowStockCount: 0,
     pendingTransfers: 0,
-    capacity: '82%',
+    capacity: 'N/A',
   });
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
         // Load products to compute total value and low stock
         const prodRes = await api.getProducts();
         const products = prodRes.data?.products || [];
-        
+
         let totalVal = 0;
         let lowCount = 0;
         products.forEach((p: any) => {
@@ -47,7 +48,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
           totalValue: totalVal,
           lowStockCount: lowCount,
           pendingTransfers: pending,
-          capacity: '82%', // Mock static capacity
+          capacity: 'N/A',
         });
 
         setRecentMovements(ledger.slice(0, 5));
@@ -64,6 +65,10 @@ export const InventoryOverviewDashboard: React.FC = () => {
           height: Math.min(180, Math.max(20, (stock / 1000) * 100)), // Scale height for bar chart
         }));
         setCategoryData(catList);
+
+        // Store low stock products for alerts panel
+        const lowItems = products.filter((p: any) => p.stock <= p.lowStock).slice(0, 3);
+        setLowStockProducts(lowItems);
 
       } catch (err) {
         console.error('Failed to load dashboard data', err);
@@ -210,22 +215,21 @@ export const InventoryOverviewDashboard: React.FC = () => {
                   </div>
                   <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>Stock status requires restock actions.</p>
-                    
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ background: '#334155', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '13px' }}>CS-RTR-9000-V2</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>Core Network Router</div>
-                        </div>
-                        <span style={{ color: '#f87171', fontWeight: 700 }}>Restock Limit</span>
-                      </div>
-                      <div style={{ background: '#334155', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '13px' }}>SKU-4412</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>AeroNoise Headphones</div>
-                        </div>
-                        <span style={{ color: '#f87171', fontWeight: 700 }}>4 Units Left</span>
-                      </div>
+                      {lowStockProducts.length === 0 ? (
+                        <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0 }}>No critical stock alerts at this time.</p>
+                      ) : (
+                        lowStockProducts.map((p: any) => (
+                          <div key={p.id} style={{ background: '#334155', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '13px' }}>{p.sku}</div>
+                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.name}</div>
+                            </div>
+                            <span style={{ color: '#f87171', fontWeight: 700 }}>{p.stock} Left</span>
+                          </div>
+                        ))
+                      )}
                     </div>
 
                     <Link to="/purchase-orders" className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center', marginTop: '10px', background: 'white', color: '#1e293b' }}>

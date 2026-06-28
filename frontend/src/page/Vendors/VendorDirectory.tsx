@@ -8,15 +8,18 @@ import '../../style/StitchDashboard.css';
 export const VendorDirectory: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const statusFilter = 'All';
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
   const loadVendors = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.getVendors({
         search: search || undefined,
@@ -24,12 +27,20 @@ export const VendorDirectory: React.FC = () => {
         status: statusFilter === 'All' ? undefined : statusFilter,
       });
       setVendors(res.data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load vendors', err);
+      setError(err.message || 'Failed to load vendors.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Load categories once on mount
+  useEffect(() => {
+    api.getVendorCategories()
+      .then((res) => setCategories(res.data || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadVendors();
@@ -72,9 +83,9 @@ export const VendorDirectory: React.FC = () => {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Filters — dynamically populated from API */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            {['All', 'Networking', 'Electronics', 'Audio'].map((cat) => (
+            {['All', ...categories].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
@@ -95,6 +106,12 @@ export const VendorDirectory: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {error && (
+            <div style={{ padding: '16px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '24px' }}>
+              {error}
+            </div>
+          )}
 
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading vendors directory...</div>

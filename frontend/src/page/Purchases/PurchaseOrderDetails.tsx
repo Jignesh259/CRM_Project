@@ -13,6 +13,7 @@ export const PurchaseOrderDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState('Current User');
 
   const navigate = useNavigate();
 
@@ -32,69 +33,37 @@ export const PurchaseOrderDetails: React.FC = () => {
 
   useEffect(() => {
     loadPODetails();
+    api.getMe().then((res) => {
+      if (res?.data?.full_name) setCurrentUserName(res.data.full_name);
+    }).catch(() => {});
   }, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!po) return;
     setUpdating(true);
     try {
-      const storedPOsStr = localStorage.getItem('cs_purchase_orders') || '[]';
-      const storedPOs = JSON.parse(storedPOsStr);
-      const poIdx = storedPOs.findIndex((p: any) => p.id === po.id);
-      
-      if (poIdx !== -1) {
-        storedPOs[poIdx].status = newStatus;
-        storedPOs[poIdx].comments.push({
+      const updatedComments = [
+        ...(po.comments || []),
+        {
           id: String(Date.now()),
           author: 'System',
           text: `Purchase Order status updated to ${newStatus}.`,
-          timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        });
-
-        // If Received, restock products automatically
-        if (newStatus === 'Received') {
-          // Decrement vendor active count & pending deliveries
-          const vendorStr = localStorage.getItem('cs_vendors') || '[]';
-          const vendors = JSON.parse(vendorStr);
-          const vIdx = vendors.findIndex((v: any) => v.id === po.vendorId);
-          if (vIdx !== -1) {
-            vendors[vIdx].activePOs = Math.max(0, vendors[vIdx].activePOs - 1);
-            vendors[vIdx].pendingDeliveries = Math.max(0, vendors[vIdx].pendingDeliveries - 1);
-            localStorage.setItem('cs_vendors', JSON.stringify(vendors));
-          }
-
-          // Restock items in products
-          const prodStr = localStorage.getItem('cs_products') || '[]';
-          const products = JSON.parse(prodStr);
-          po.items.forEach((item: any) => {
-            const pIdx = products.findIndex((p: any) => p.id === item.productId);
-            if (pIdx !== -1) {
-              products[pIdx].stock += Number(item.qty);
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ];
+      const res = await api.updatePurchaseOrder(po.id, { status: newStatus, comments: updatedComments });
+      if (res.success) {
+        setPO(res.data);
+        // If Received, trigger backend restock via inventory API
+        if (newStatus === 'Received' && po.items) {
+          for (const item of po.items) {
+            try {
+              await api.receiveStock({ productId: item.productId, qty: item.qty, ref: po.id });
+            } catch (stockErr) {
+              console.error('Failed to restock item:', item.name, stockErr);
             }
-          });
-          localStorage.setItem('cs_products', JSON.stringify(products));
-
-          // Log in Transaction Ledger
-          const ledgerStr = localStorage.getItem('cs_inventory_ledger') || '[]';
-          const ledger = JSON.parse(ledgerStr);
-          po.items.forEach((item: any) => {
-            ledger.unshift({
-              id: `TX-${Math.floor(9000 + Math.random() * 1000)}`,
-              productId: item.productId,
-              productName: item.name,
-              type: 'Stock In',
-              qty: item.qty,
-              warehouse: 'WH-A', // Seed WH
-              date: new Date().toISOString(),
-              status: 'Completed',
-              ref: po.id,
-            });
-          });
-          localStorage.setItem('cs_inventory_ledger', JSON.stringify(ledger));
+          }
         }
-
-        localStorage.setItem('cs_purchase_orders', JSON.stringify(storedPOs));
-        setPO(storedPOs[poIdx]);
       }
     } catch (err) {
       console.error(err);
@@ -103,25 +72,26 @@ export const PurchaseOrderDetails: React.FC = () => {
     }
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !po) return;
 
-    const storedPOsStr = localStorage.getItem('cs_purchase_orders') || '[]';
-    const storedPOs = JSON.parse(storedPOsStr);
-    const poIdx = storedPOs.findIndex((p: any) => p.id === po.id);
-    
-    if (poIdx !== -1) {
-      const commentObj = {
-        id: String(Date.now()),
-        author: 'Sarah Jenkins', // Mock logged in user
-        text: newComment,
-        timestamp: 'Just now',
-      };
-      storedPOs[poIdx].comments.push(commentObj);
-      localStorage.setItem('cs_purchase_orders', JSON.stringify(storedPOs));
-      setPO(storedPOs[poIdx]);
-      setNewComment('');
+    const commentObj = {
+      id: String(Date.now()),
+      author: currentUserName,
+      text: newComment,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    const updatedComments = [...(po.comments || []), commentObj];
+
+    try {
+      const res = await api.updatePurchaseOrder(po.id, { comments: updatedComments });
+      if (res.success) {
+        setPO(res.data);
+        setNewComment('');
+      }
+    } catch (err) {
+      console.error('Failed to add comment', err);
     }
   };
 

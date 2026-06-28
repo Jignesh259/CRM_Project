@@ -97,25 +97,16 @@ export const ProductDetailedOverview: React.FC = () => {
   }
 
   const isLowStock = product.stock <= (product.lowStock || 10);
-  const totalPhysical = Number(product.stock) + 28; // Committed is mocked to 28 units like screen
+  const committed = Number(product.committed_qty || 0); // Units committed to open orders
+  const totalPhysical = Number(product.stock) + committed;
   const reorderPoint = product.lowStock || 50;
   const stockPercentage = Math.min(100, Math.round((product.stock / (product.initialStock || product.stock || 1)) * 100));
 
-  // Specs defaults if not present
-  const specs = product.specs || {
-    'Form Factor': 'Standard',
-    'Weight': 'N/A',
-    'Power Supply': 'N/A',
-    'Warranty': '1 Year Standard'
-  };
+  // Specs from product data only — no fake defaults
+  const specs = product.specs || {};
 
-  // Supplier defaults if not present
-  const supplier = product.supplier || {
-    name: 'Standard Supplier',
-    leadTime: '10-14 Days',
-    moq: '5 Units',
-    lastOrdered: 'Never'
-  };
+  // Supplier from product data only
+  const supplier = product.supplier || null;
 
   // Activity defaults
   const activityList = product.activity || [];
@@ -289,7 +280,7 @@ export const ProductDetailedOverview: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                   <div>
                     <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Committed (Orders)</span>
-                    <span style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>28</span>
+                    <span style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>{committed}</span>
                   </div>
                   <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>Units</span>
                 </div>
@@ -393,31 +384,37 @@ export const ProductDetailedOverview: React.FC = () => {
                 <span className="material-symbols-outlined" style={{ color: '#8b5cf6' }}>local_shipping</span>
                 Supplier Details
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ width: '48px', height: '48px', backgroundColor: '#f3e8ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e9d5ff' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#7c3aed', width: '100%', textAlign: 'center' }}>
-                    {supplier.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </span>
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: '#0f172a' }}>{supplier.name}</h4>
-                  <Link to="/inventory/brands" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none' }}>View Partner Brands</Link>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Lead Time</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.leadTime}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>MOQ</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.moq}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Last Ordered</span>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.lastOrdered}</span>
-                </div>
-              </div>
+              {supplier ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ width: '48px', height: '48px', backgroundColor: '#f3e8ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e9d5ff' }}>
+                      <span style={{ fontSize: '16px', fontWeight: 700, color: '#7c3aed', width: '100%', textAlign: 'center' }}>
+                        {supplier.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: '#0f172a' }}>{supplier.name}</h4>
+                      <Link to="/inventory/brands" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none' }}>View Partner Brands</Link>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Lead Time</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.leadTime}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>MOQ</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.moq}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Last Ordered</span>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{supplier.lastOrdered}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>No supplier information available.</p>
+              )}
             </div>
           </div>
 

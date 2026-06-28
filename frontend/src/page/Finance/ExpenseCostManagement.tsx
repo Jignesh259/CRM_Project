@@ -120,14 +120,10 @@ export const ExpenseCostManagement: React.FC = () => {
   // Settle / Approve expense claim
   const handleApproveExpense = async (id: string) => {
     try {
-      const dataStr = localStorage.getItem('cs_expenses') || '[]';
-      const list = JSON.parse(dataStr);
-      const idx = list.findIndex((e: any) => e.id === id);
-      if (idx !== -1) {
-        list[idx].status = 'Cleared';
-        list[idx].approvedBy = 'Alex Mercer';
-        localStorage.setItem('cs_expenses', JSON.stringify(list));
-      }
+      await api.updateExpense(id, {
+        status: 'Cleared',
+        approvedBy: 'Alex Mercer'
+      });
       loadData();
     } catch (err) {
       console.error('Failed to approve expense claim', err);
