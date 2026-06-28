@@ -86,7 +86,7 @@ coverage
 # Temporary files
 tmp/
 temp/
-
+/database
 # Documentation
 Docs/
 README.md
