@@ -62,7 +62,8 @@ export const LeadProfile: React.FC = () => {
       setError(null);
 
       // Fetch users list
-      const usersResponse = await fetch('http://localhost:8000/api/users', {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:19022/api';
+      const usersResponse = await fetch(`${apiBase}/users`, {
         headers: api.getAuthHeaders()
       });
       if (usersResponse.ok) {

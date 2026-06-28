@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:19022/api';
 
 /** Generic error extractor for FastAPI responses */
 function extractError(error: any, fallback: string): string {

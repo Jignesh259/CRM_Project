@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     FRONTEND_URL: str = "http://localhost:3000"
     OTP_EXPIRE_MINUTES: int = 5
+    PORT: int = 19022
 
     # ── Production ───────────────────────────────────────────
     WORKERS: int = 4                # Uvicorn/Gunicorn worker count

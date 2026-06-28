@@ -27,7 +27,8 @@ export const ScheduleFollowUp: React.FC = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/users', {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:19022/api';
+        const response = await fetch(`${apiBase}/users`, {
           headers: api.getAuthHeaders()
         });
         if (response.ok) {
