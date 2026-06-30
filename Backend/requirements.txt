@@ -6,6 +6,7 @@ gunicorn
 # Database
 sqlalchemy
 psycopg2-binary
+pyodbc
 alembic
 
 # Configuration

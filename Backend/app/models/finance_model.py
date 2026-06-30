@@ -3,8 +3,7 @@ Finance, Invoices, Payments, and Expense database models.
 Multi-tenancy: Every row carries a `company_id` matching the User's company.
 """
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text, UUID, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -20,12 +19,12 @@ class Invoice(Base):
     customer_name = Column(String(255), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     due_date = Column(DateTime(timezone=True), nullable=True)
-    items = Column(JSONB, nullable=True)                           # [{productId, name, qty, retail, total}]
+    items = Column(JSON, nullable=True)                           # [{productId, name, qty, retail, total}]
     subtotal = Column(Float, nullable=False, default=0.0)
     tax = Column(Float, nullable=False, default=0.0)
     total = Column(Float, nullable=False, default=0.0)
     status = Column(String(50), nullable=False, default="Unpaid")  # Paid, Unpaid, Overdue
-    history = Column(JSONB, nullable=True)                         # [{date, action, user}]
+    history = Column(JSON, nullable=True)                         # [{date, action, user}]
 
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -6,8 +6,7 @@ the `company_id` of the User who created it.
 """
 
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Integer, Text, Boolean
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Integer, Text, Boolean, UUID, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -61,8 +60,8 @@ class Product(Base):
     status = Column(String(50), nullable=False, default="Active") # Active, Inactive
     image = Column(String(255), nullable=True)
     
-    specs = Column(JSONB, nullable=True) # Arbitrary key-values
-    supplier = Column(JSONB, nullable=True) # {name, leadTime, moq, lastOrdered}
+    specs = Column(JSON, nullable=True) # Arbitrary key-values
+    supplier = Column(JSON, nullable=True) # {name, leadTime, moq, lastOrdered}
 
     created_by_id = Column(
         UUID(as_uuid=True),

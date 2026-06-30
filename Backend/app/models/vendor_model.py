@@ -6,8 +6,7 @@ the `company_id` of the User who created it.
 """
 
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Integer, Text, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base

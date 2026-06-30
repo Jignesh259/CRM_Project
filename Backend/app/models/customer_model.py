@@ -6,8 +6,7 @@ the `company_id` of the User who created it.
 """
 
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text, UUID, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -43,7 +42,7 @@ class Customer(Base):
     last_order = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
     
-    tags = Column(JSONB, nullable=True) # Array of strings
+    tags = Column(JSON, nullable=True) # Array of strings
 
     created_by_id = Column(
         UUID(as_uuid=True),

@@ -4,8 +4,7 @@ OTP model — database backup for OTPs (Redis is the primary store).
 
 import uuid
 import enum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
 

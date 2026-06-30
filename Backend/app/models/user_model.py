@@ -8,8 +8,7 @@ Multi-tenancy is implemented via `company_id`:
 """
 
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Table, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Boolean, DateTime, Table, ForeignKey, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base

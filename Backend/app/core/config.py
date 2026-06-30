@@ -13,13 +13,14 @@ from functools import lru_cache
 class Settings(BaseSettings):
     """Central configuration loaded from environment variables."""
 
-    # ── Database ──────────────────────────────────────────────
-    DB_HOST: str = "localhost" or os.getenv("DB_HOST")
-    DB_PORT: int = 2509 or os.getenv("DB_PORT")
-    DB_NAME: str = "crm_db" or os.getenv("DB_NAME")
-    DB_USER: str = "postgres" or os.getenv("DB_USER")
-    DB_PASSWORD: str = "password" or os.getenv("DB_PASSWORD")
-    DB_POOL_SIZE: int = 10 or os.getenv("DB_POOL_SIZE")          # Persistent connections per worker
+    DB_TYPE: str = "mssql"
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 1433
+    DB_NAME: str = "crm_db"
+    DB_USER: str = "sa"
+    DB_PASSWORD: str = "password"
+    DB_TRUSTED_CONNECTION: bool = False  # True = Windows Auth (no user/pass)
+    DB_POOL_SIZE: int = 10          # Persistent connections per worker
     DB_MAX_OVERFLOW: int = 20       # Extra connections under burst load
 
     # ── JWT ───────────────────────────────────────────────────
@@ -55,10 +56,29 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         import urllib.parse
         encoded_password = urllib.parse.quote_plus(self.DB_PASSWORD)
-        return (
-            f"postgresql://{self.DB_USER}:{encoded_password}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-        )
+        if self.DB_TYPE.lower() == "postgresql":
+            return (
+                f"postgresql://{self.DB_USER}:{encoded_password}"
+                f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            )
+        else:
+            # Use pyodbc (supports Shared Memory — SQL Express default)
+            import urllib.parse
+            params = {
+                "driver": "ODBC Driver 17 for SQL Server",
+                "server": self.DB_HOST + ("\\" + "SQLEXPRESS" if "\\" not in self.DB_HOST else ""),
+                "database": self.DB_NAME,
+                "TrustServerCertificate": "yes",
+            }
+            if self.DB_TRUSTED_CONNECTION:
+                params["Trusted_Connection"] = "yes"
+                conn_str = ";".join(f"{k}={v}" for k, v in params.items())
+                return f"mssql+pyodbc:///?odbc_connect={urllib.parse.quote_plus(conn_str)}"
+            else:
+                params["UID"] = self.DB_USER
+                params["PWD"] = self.DB_PASSWORD
+                conn_str = ";".join(f"{k}={v}" for k, v in params.items())
+                return f"mssql+pyodbc:///?odbc_connect={urllib.parse.quote_plus(conn_str)}"
 
     @property
     def REDIS_URL(self) -> str:

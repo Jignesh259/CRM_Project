@@ -7,8 +7,7 @@ on this column so a user can NEVER read or mutate another tenant's leads.
 """
 
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, ForeignKey, Float, Text, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base

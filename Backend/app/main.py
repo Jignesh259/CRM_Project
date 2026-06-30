@@ -38,18 +38,28 @@ async def lifespan(app: FastAPI):
 
     # Create tables (for dev — use Alembic in production)
     if not settings.is_production:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created / verified (dev mode)")
-        
-        # Verify / add missing column 'temp' and 'department' in development
         try:
-            from sqlalchemy import text
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE leads ADD COLUMN IF NOT EXISTS temp VARCHAR(50) DEFAULT 'warm' NOT NULL"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(255) DEFAULT 'General'"))
-            logger.info("Database schema upgrade: 'temp' and 'department' columns verified/added")
-        except Exception as db_err:
-            logger.exception("Failed to run startup database schema check/upgrade: {}", db_err)
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables created / verified (dev mode)")
+            
+            # Verify / add missing columns in development (SQL Server syntax)
+            try:
+                from sqlalchemy import text
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leads') AND name = 'temp')
+                            ALTER TABLE leads ADD temp VARCHAR(50) DEFAULT 'warm' NOT NULL
+                    """))
+                    conn.execute(text("""
+                        IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('users') AND name = 'department')
+                            ALTER TABLE users ADD department VARCHAR(255) DEFAULT 'General'
+                    """))
+                logger.info("Database schema upgrade: 'temp' and 'department' columns verified/added")
+            except Exception as db_err:
+                logger.warning("Schema upgrade skipped (non-critical): {}", db_err)
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            logger.warning("App starting WITHOUT database — DB-dependent features will fail until connection is restored")
     else:
         logger.info("Production mode — skipping create_all (use Alembic)")
 
